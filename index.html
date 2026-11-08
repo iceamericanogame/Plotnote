@@ -372,6 +372,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
       <button class="btn ghost" id="expOne"><span data-ico="download"></span>이 회차 .txt로 받기</button>
       <button class="btn ghost" id="expAll"><span data-ico="download"></span>이 소설 합본 .txt로 받기</button>
       <div class="theme-row" role="group" aria-label="화면 테마"><span class="muted sm">화면</span><div class="seg" id="themeSeg"><button data-theme-set="light" aria-pressed="false">라이트</button><button data-theme-set="dark" aria-pressed="false">다크</button><button data-theme-set="system" aria-pressed="true">시스템</button></div></div>
+      <button class="btn ghost" id="expEpub"><span data-ico="download"></span>이 소설 .epub로 받기</button>
     </div>
   </aside>
   <div class="scrim" id="scrim" hidden></div>
@@ -926,7 +927,7 @@ function refreshAfterRemote(prevActive,prevText){
   else{
     if(ed.value!==d.text||ttl.value!==d.title){
       var foc=document.activeElement===ed, a=ed.selectionStart, b=ed.selectionEnd;
-      ed.value=d.text; ttl.value=d.title; updateStats();
+      ed.value=d.text; ttl.value=d.title; updateStats(); uhReset();
       if(foc){var n=d.text.length;try{ed.setSelectionRange(Math.min(a,n),Math.min(b,n));}catch(_){}}
     }
     updateCrumb();
@@ -1249,7 +1250,28 @@ function renderTrash(){
 /* ---------- 쓰기 ---------- */
 var ed, ttl;
 function loadEditor(){
-  var d=cur(); ttl.value=d.title; ed.value=d.text; applyPrefs(); updateStats(); updateCrumb(); ed.scrollTop=0;
+  var d=cur(); ttl.value=d.title; ed.value=d.text; applyPrefs(); updateStats(); updateCrumb(); ed.scrollTop=0; uhReset();
+}
+/* ---------- 실행 취소 / 다시 실행 (버튼을 눌러도 키보드가 올라오지 않는다) ---------- */
+var UH={docId:null,stack:[],i:0,t:0};
+function uhReset(){var d=cur();UH.docId=d?d.id:null;UH.stack=[{t:ed.value}];UH.i=0;UH.t=0;uhBtns();}
+function uhBtns(){var u=$('#undo'),r=$('#redo');if(u)u.disabled=UH.i<=0;if(r)r.disabled=UH.i>=UH.stack.length-1;}
+function uhPush(force){
+  var d=cur(); if(!d) return;
+  if(UH.docId!==d.id){uhReset();return;}
+  var v=ed.value, top=UH.stack[UH.i]; if(top&&top.t===v) return;
+  var now=Date.now(), big=Math.abs(v.length-(top?top.t.length:0))>20;
+  UH.stack.length=UH.i+1;
+  if(!force&&!big&&UH.i>0&&now-UH.t<900){UH.stack[UH.i]={t:v};}
+  else{UH.stack.push({t:v});if(UH.stack.length>300)UH.stack.shift();UH.i=UH.stack.length-1;}
+  UH.t=now; uhBtns();
+}
+function uhGo(dir){
+  var d=cur(); if(!d||UH.docId!==d.id) return;
+  var n=UH.i+dir; if(n<0||n>=UH.stack.length) return;
+  UH.i=n; var v=UH.stack[n].t; ed.value=v; UH.t=0;
+  ed.dispatchEvent(new Event('input')); uhBtns();
+  try{ if(document.activeElement===ed) ed.setSelectionRange(v.length,v.length);}catch(_){}
 }
 function applyPrefs(){
   ed.style.fontSize=S.prefs.size+'px';
@@ -1538,11 +1560,67 @@ function restoreVersion(v){
 }
 
 /* ---------- 내려받기 ---------- */
+/* ---------- EPUB 만들기 (외부 라이브러리 없이 zip을 직접 만든다) ---------- */
+function crc32(u8){
+  var t=crc32.t;
+  if(!t){t=crc32.t=new Uint32Array(256);for(var n=0;n<256;n++){var c0=n;for(var k=0;k<8;k++)c0=c0&1?0xEDB88320^(c0>>>1):c0>>>1;t[n]=c0>>>0;}}
+  var c=0xFFFFFFFF; for(var i=0;i<u8.length;i++)c=t[(c^u8[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function zipStore(files){
+  var enc=new TextEncoder(), parts=[], cd=[], off=0, d=new Date();
+  var dt=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(), tm=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
+  files.forEach(function(f){
+    var nm=enc.encode(f.name), data=enc.encode(f.text), crc=crc32(data), sz=data.length;
+    var lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,tm,true); lh.setUint16(12,dt,true); lh.setUint32(14,crc,true); lh.setUint32(18,sz,true); lh.setUint32(22,sz,true); lh.setUint16(26,nm.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer),nm,data);
+    var ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,tm,true); ch.setUint16(14,dt,true); ch.setUint32(16,crc,true); ch.setUint32(20,sz,true); ch.setUint32(24,sz,true); ch.setUint16(28,nm.length,true); ch.setUint32(42,off,true);
+    cd.push(new Uint8Array(ch.buffer),nm);
+    off+=30+nm.length+sz;
+  });
+  var cdSize=0; cd.forEach(function(x){cdSize+=x.length;});
+  var end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cdSize,true); end.setUint32(16,off,true);
+  return new Blob(parts.concat(cd,[new Uint8Array(end.buffer)]),{type:'application/epub+zip'});
+}
+function xe(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function makeEpub(w,docs,author){
+  var X='<?xml version="1.0" encoding="UTF-8"?>\n', NS='xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="ko" xml:lang="ko"';
+  var title=w.title||'제목 없음', id='urn:uuid:plotnote-'+w.id, mod=new Date().toISOString().replace(/\.\d+Z$/,'Z');
+  function page(t,inner){return X+'<html '+NS+'><head><meta charset="utf-8"/><title>'+xe(t)+'</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body>'+inner+'</body></html>';}
+  var chapters=docs.map(function(d,i){
+    var lines=String(d.text||'').replace(/\r/g,'').split('\n'), body='', gap=false;
+    lines.forEach(function(l){
+      if(!l.trim()){ if(body&&!gap){body+='<p class="gap">&#160;</p>';gap=true;} }
+      else{body+='<p>'+xe(l.trim())+'</p>';gap=false;}
+    });
+    var nm='ch'+String(i+1).padStart(3,'0')+'.xhtml';
+    return {name:nm,title:d.title||('제'+(i+1)+'화'),xml:page(d.title||title,'<h2>'+xe(d.title||'')+'</h2>'+body)};
+  });
+  var titlePage=page(title,'<div class="cover"><h1>'+xe(title)+'</h1>'+(author?'<p class="by">'+xe(author)+'</p>':'')+'</div>');
+  var manifest='<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/><item id="css" href="style.css" media-type="text/css"/><item id="title" href="title.xhtml" media-type="application/xhtml+xml"/>';
+  var spine='<itemref idref="title"/>';
+  chapters.forEach(function(c,i){manifest+='<item id="c'+i+'" href="'+c.name+'" media-type="application/xhtml+xml"/>';spine+='<itemref idref="c'+i+'"/>';});
+  var opf=X+'<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bid" xml:lang="ko"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bid">'+xe(id)+'</dc:identifier><dc:title>'+xe(title)+'</dc:title><dc:language>ko</dc:language>'+(author?'<dc:creator>'+xe(author)+'</dc:creator>':'')+'<meta property="dcterms:modified">'+mod+'</meta></metadata><manifest>'+manifest+'</manifest><spine toc="ncx">'+spine+'</spine></package>';
+  var nav=page('목차','<nav epub:type="toc" id="toc"><h2>목차</h2><ol>'+chapters.map(function(c){return '<li><a href="'+c.name+'">'+xe(c.title)+'</a></li>';}).join('')+'</ol></nav>');
+  var ncx=X+'<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head><meta name="dtb:uid" content="'+xe(id)+'"/></head><docTitle><text>'+xe(title)+'</text></docTitle><navMap>'+chapters.map(function(c,i){return '<navPoint id="n'+i+'" playOrder="'+(i+1)+'"><navLabel><text>'+xe(c.title)+'</text></navLabel><content src="'+c.name+'"/></navPoint>';}).join('')+'</navMap></ncx>';
+  var css='body{font-family:serif;line-height:1.8;margin:0 .6em}h2{text-align:center;font-size:1.25em;margin:2em 0 1.6em;page-break-before:always}p{margin:0;text-indent:1em;text-align:justify}p.gap{text-indent:0}.cover{text-align:center;margin-top:30%}.cover h1{font-size:1.8em;line-height:1.4}.by{text-indent:0;text-align:center;margin-top:1.5em;color:#666}';
+  var files=[{name:'mimetype',text:'application/epub+zip'},{name:'META-INF/container.xml',text:X+'<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>'},
+    {name:'OEBPS/content.opf',text:opf},{name:'OEBPS/nav.xhtml',text:nav},{name:'OEBPS/toc.ncx',text:ncx},{name:'OEBPS/style.css',text:css},{name:'OEBPS/title.xhtml',text:titlePage}];
+  chapters.forEach(function(c){files.push({name:'OEBPS/'+c.name,text:c.xml});});
+  return zipStore(files);
+}
+
 function safeName(s){return (s||'원고').replace(/[\\\/:*?"<>|\n\r]+/g,'-').trim().slice(0,60)||'원고';}
 function saveFile(name,text){
-  if(!text.trim()){toast('저장할 글이 아직 없어요');return;}
+  if(typeof text==='string'&&!text.trim()){toast('저장할 글이 아직 없어요');return;}
   try{
-    var url=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/plain;charset=utf-8'}));
+    var blob=(typeof text==='string')?new Blob(['\ufeff'+text],{type:'text/plain;charset=utf-8'}):text;
+    var url=URL.createObjectURL(blob);
     var a=document.createElement('a'); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove();
     setTimeout(function(){URL.revokeObjectURL(url);},4000); toast('파일로 받았어요');
   }catch(e){toast('파일을 저장하지 못했어요');}
@@ -1573,6 +1651,11 @@ function bindOnce(){
     var w=curWork(), body=workDocs(w.id).map(function(d){return (d.title||'제목 없음')+'\n\n'+d.text;}).join('\n\n────────────\n\n');
     saveFile(safeName(w.title)+' 합본.txt',body);
   });
+  $('#expEpub').addEventListener('click',function(){
+    var w=curWork(), docs=workDocs(w.id).filter(function(d){return d.text&&d.text.trim();});
+    if(!docs.length){toast('내보낼 글이 아직 없어요');return;}
+    saveFile(safeName(w.title)+'.epub',makeEpub(w,docs,(typeof A!=='undefined'&&A.name)||''));
+  });
   $('#acctBtn').addEventListener('click',openAcct);
   $('#acctX').addEventListener('click',closeAcct);
   $('#acctM').addEventListener('click',function(ev){if(ev.target===$('#acctM'))closeAcct();});
@@ -1582,14 +1665,27 @@ function bindOnce(){
   });
   ed.addEventListener('input',function(){
     var d=cur(); d.text=ed.value; d.updated=Date.now(); delete d.example;
-    updateStats(); persistDoc(d); updateRow(d); snapTick(d);
+    updateStats(); persistDoc(d); updateRow(d); snapTick(d); uhPush();
   });
   ttl.addEventListener('input',function(){
     var d=cur(); d.title=ttl.value; d.updated=Date.now(); delete d.example;
     persistDoc(d); updateRow(d);
   });
-  $('#undo').addEventListener('click',function(){ed.focus();try{document.execCommand('undo');}catch(_){}});
-  $('#redo').addEventListener('click',function(){ed.focus();try{document.execCommand('redo');}catch(_){}});
+  ['undo','redo'].forEach(function(id){
+    var b=$('#'+id);
+    b.addEventListener('pointerdown',function(ev){ev.preventDefault();});   // 글칸의 포커스를 건드리지 않아 키보드가 새로 올라오지 않는다
+    b.addEventListener('mousedown',function(ev){ev.preventDefault();});
+    b.addEventListener('click',function(){uhGo(id==='undo'?-1:1);});
+  });
+  ed.addEventListener('beforeinput',function(ev){
+    if(ev.inputType==='historyUndo'){ev.preventDefault();uhGo(-1);}
+    else if(ev.inputType==='historyRedo'){ev.preventDefault();uhGo(1);}
+  });
+  ed.addEventListener('keydown',function(ev){
+    if(!(ev.ctrlKey||ev.metaKey)) return; var k=ev.key.toLowerCase();
+    if(k==='z'){ev.preventDefault();uhGo(ev.shiftKey?1:-1);}
+    else if(k==='y'){ev.preventDefault();uhGo(1);}
+  });
   $('#fontMinus').addEventListener('click',function(){S.prefs.size=Math.max(14,S.prefs.size-2);applyPrefs();saveLS();});
   $('#fontPlus').addEventListener('click',function(){S.prefs.size=Math.min(30,S.prefs.size+2);applyPrefs();saveLS();});
   $('#fontFace').addEventListener('click',function(){S.prefs.font=S.prefs.font==='serif'?'sans':'serif';applyPrefs();saveLS();});
