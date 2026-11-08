@@ -364,6 +364,19 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 .dl-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:13px 14px;font-size:15px}
 .dl-opt small{color:var(--ink-2);font-size:12.5px}
 .modal#dlM{z-index:50}
+
+.dl mark{background:color-mix(in srgb,currentColor 30%,transparent);font-weight:700;padding:0 1px}
+.dl.del mark{text-decoration:line-through;text-decoration-thickness:1.5px}
+.dl.add mark{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+#trashM .m-head,#setM .m-head{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+#trashM .m-head>:first-child,#setM .m-head>:first-child{justify-self:start}
+#trashM .m-head>:last-child,#setM .m-head>:last-child{justify-self:end}
+#trashM .m-head h2,#setM .m-head h2{font:600 18px var(--f-ui);text-align:center;margin:0}
+
+.sheet{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:0}
+.sheet .crumb,.sheet .ttl{flex:none}
+.sheet .wbar{position:sticky;bottom:0;z-index:3;background:var(--editor);flex:none}
+.ed{flex:none;overflow:hidden;min-height:calc(100% - 96px);min-height:max(55vh,320px)}
 /* 계정 · 동기화 */
 .acct{display:inline-flex;align-items:center;gap:7px;height:38px;max-width:46vw;padding:0 10px 0 5px;border:1px solid var(--line);background:var(--surface);border-radius:99px;font-weight:500;font-size:13px}
 .acct-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -375,8 +388,8 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 .sm{font-size:12.5px}
 .gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));overflow:auto}
 .gate-card{width:min(100%,25rem);background:var(--editor);border:1px solid var(--line);border-radius:8px;padding:clamp(22px,6vw,36px);display:flex;flex-direction:column;gap:14px}
-.gate-brand{margin:0;font:600 28px/1.3 var(--f-write);letter-spacing:.01em}
-.gate-sub{margin:0;color:var(--ink-2);font:16px/1.7 var(--f-write)}
+.gate-brand{margin:0;font:600 28px/1.3 var(--f-ui);letter-spacing:.01em}
+.gate-sub{margin:0;color:var(--ink-2);font:16px/1.7 var(--f-ui)}
 .gate-body{display:flex;flex-direction:column;gap:12px;margin-top:6px}
 .gate-btn{min-height:46px;font-size:15px}
 .gate-note,.gate-msg{margin:0;color:var(--ink-2);font-size:13px;line-height:1.7}
@@ -1382,7 +1395,7 @@ function renderTrash(){
 /* ---------- 쓰기 ---------- */
 var ed, ttl;
 function loadEditor(){
-  var d=cur(); ttl.value=d.title; ed.value=d.text; applyPrefs(); updateStats(); updateCrumb(); ed.scrollTop=0; uhReset();
+  var d=cur(); ttl.value=d.title; ed.value=d.text; applyPrefs(); updateStats(); updateCrumb(); ed.parentNode.scrollTop=0; fitEd(); uhReset();
 }
 /* ---------- 실행 취소 / 다시 실행 (버튼을 눌러도 키보드가 올라오지 않는다) ---------- */
 var UH={docId:null,stack:[],i:0,t:0};
@@ -1405,12 +1418,19 @@ function uhGo(dir){
   ed.dispatchEvent(new Event('input')); uhBtns();
   try{ if(document.activeElement===ed) ed.setSelectionRange(v.length,v.length);}catch(_){}
 }
+function fitEd(){
+  var sh=ed.parentNode, top=sh.scrollTop;
+  ed.style.height='auto'; ed.style.height=ed.scrollHeight+'px';
+  sh.scrollTop=top;
+}
 function applyPrefs(){
   ed.style.fontSize=S.prefs.size+'px';
   ed.style.fontFamily=S.prefs.font==='serif'?'var(--f-write)':'var(--f-ui)';
+  fitEd();
   $('#fontFace').textContent=S.prefs.font==='serif'?'명조':'고딕';
 }
 function updateStats(){
+  fitEd();
   var st=stats(ed.value);
   $('#stats').innerHTML='<b>'+NF.format(st.inc)+'자</b> · 공백 제외 '+NF.format(st.exc)+' · 원고지 '+st.pages.toFixed(1)+'매';
 }
@@ -1629,7 +1649,7 @@ function renderHistDetail(list){
   box.append(
     h('button',{class:'btn sm back',onclick:function(){UI.hist=null;renderHist();}},ico('back'),'기록 목록'),
     h('div',{class:'hd mt'},h('h3',{text:when(v.t)+' · '+(REASON[v.reason]||'기록')}),
-      h('p',{class:'muted',text:NF.format(stats(v.text).inc)+'자 → 지금 '+NF.format(stats(d.text).inc)+'자'})),
+      h('p',{class:'muted',text:'기록 '+NF.format(stats(v.text).inc)+'자 → 지금 '+NF.format(stats(d.text).inc)+'자'})),
     h('div',{class:'h-bar'},
       h('div',{class:'seg'},
         h('button',{'aria-pressed':UI.hmode==='diff'?'true':'false',onclick:function(){UI.hmode='diff';renderHist();}},'지금 글과 비교'),
@@ -1642,18 +1662,56 @@ function renderHistDetail(list){
     var ops=diffLines(v.text,d.text), res=renderDiff(ops);
     if(!res.changed) box.append(h('div',{class:'callout',text:'지금 글과 같은 내용이에요.'}));
     else box.append(
-      h('div',{class:'legend'},h('span',null,h('i',{class:'lg-del'}),'이 기록에만 있던 글'),h('span',null,h('i',{class:'lg-add'}),'그 뒤에 새로 쓴 글')),
+      h('div',{class:'legend'},h('span',null,h('i',{class:'lg-del'}),'기록 · 지금은 없는 단어는 취소선'),h('span',null,h('i',{class:'lg-add'}),'지금 · 새로 생긴 단어는 밑줄')),
       res.box);
   }
 }
+/* 단어 단위 비교: 두 줄에서 서로 겹치지 않는 단어만 표시한다 */
+var TOKRE=/[\p{L}\p{N}_]+|\s+|[^\s\p{L}\p{N}_]/gu;
+function wTok(x){return x.match(TOKRE)||[];}
+function wLcs(a,b){
+  var n=a.length,m=b.length; if(!n||!m||n*m>1500000) return null;
+  var W=m+1,dp=new Uint16Array((n+1)*W),i,j;
+  for(i=n-1;i>=0;i--)for(j=m-1;j>=0;j--)dp[i*W+j]=a[i]===b[j]?dp[(i+1)*W+j+1]+1:Math.max(dp[(i+1)*W+j],dp[i*W+j+1]);
+  var ma=new Array(n).fill(false),mb=new Array(m).fill(false); i=0;j=0;
+  while(i<n&&j<m){ if(a[i]===b[j]){ma[i]=true;mb[j]=true;i++;j++;} else if(dp[(i+1)*W+j]>=dp[i*W+j+1])i++; else j++; }
+  return {ma:ma,mb:mb,len:dp[0]};
+}
+function wSim(x,y){
+  var a=wTok(x).filter(function(t){return /\S/.test(t);}), b=wTok(y).filter(function(t){return /\S/.test(t);});
+  if(!a.length||!b.length) return 0;
+  var r=wLcs(a,b); if(!r) return x===y?1:0;
+  return r.len/Math.max(a.length,b.length);
+}
 function midMark(s,o){
   if(o===undefined||o===s) return [document.createTextNode(s||' ')];
-  var p=0; while(p<s.length&&p<o.length&&s[p]===o[p]) p++;
-  var q=0; while(q<s.length-p&&q<o.length-p&&s[s.length-1-q]===o[o.length-1-q]) q++;
-  var out=[]; if(p) out.push(document.createTextNode(s.slice(0,p)));
-  var mid=s.slice(p,s.length-q); if(mid){var m=document.createElement('mark');m.textContent=mid;out.push(m);}
-  if(q) out.push(document.createTextNode(s.slice(s.length-q)));
+  var ta=wTok(s), tb=wTok(o), r=wLcs(ta,tb);
+  if(!r){
+    var p=0; while(p<s.length&&p<o.length&&s[p]===o[p]) p++;
+    var q=0; while(q<s.length-p&&q<o.length-p&&s[s.length-1-q]===o[o.length-1-q]) q++;
+    var out0=[]; if(p) out0.push(document.createTextNode(s.slice(0,p)));
+    var mid0=s.slice(p,s.length-q); if(mid0){var m0=document.createElement('mark');m0.textContent=mid0;out0.push(m0);}
+    if(q) out0.push(document.createTextNode(s.slice(s.length-q)));
+    return out0.length?out0:[document.createTextNode(' ')];
+  }
+  var ch=ta.map(function(t,i){return !r.ma[i];});
+  // 바뀐 단어 사이에 낀 공백은 같이 칠해서 한 덩어리로 보이게 한다
+  for(var i=1;i<ta.length-1;i++) if(!/\S/.test(ta[i])&&ch[i-1]&&ch[i+1]) ch[i]=true;
+  var out=[], buf='', cur=null;
+  function flush(){ if(!buf) return; if(cur){var m=document.createElement('mark');m.textContent=buf;out.push(m);} else out.push(document.createTextNode(buf)); buf=''; }
+  ta.forEach(function(t,i){ if(cur!==ch[i]){flush();cur=ch[i];} buf+=t; });
+  flush();
   return out.length?out:[document.createTextNode(' ')];
+}
+function pairLines(dels,adds){
+  var dO=new Array(dels.length), aO=new Array(adds.length), j=0, i, k;
+  if(dels.length*adds.length>2500){ for(i=0;i<Math.min(dels.length,adds.length);i++){dO[i]=adds[i];aO[i]=dels[i];} return {dO:dO,aO:aO}; }
+  for(i=0;i<dels.length;i++){
+    var best=-1,bs=0.35;
+    for(k=j;k<adds.length;k++){var sc=wSim(dels[i],adds[k]); if(sc>bs){bs=sc;best=k;}}
+    if(best>=0){dO[i]=adds[best];aO[best]=dels[i];j=best+1;}
+  }
+  return {dO:dO,aO:aO};
 }
 function rowEl(kind,sign,s,other){
   return h('div',{class:'dl '+kind},h('span',{class:'sg',text:sign}),h('span',{class:'tx'},kind==='eq'?(s||' '):midMark(s,other)));
@@ -1674,8 +1732,9 @@ function renderDiff(ops){
       var k=i, dels=[], adds=[];
       while(k<n&&ops[k].t==='-'){dels.push(ops[k].s);k++;}
       while(k<n&&ops[k].t==='+'){adds.push(ops[k].s);k++;}
-      dels.forEach(function(s,x){box.append(rowEl('del','−',s,adds[x]));});
-      adds.forEach(function(s,x){box.append(rowEl('add','+',s,dels[x]));});
+      var pr=pairLines(dels,adds);
+      dels.forEach(function(s,x){box.append(rowEl('del','−',s,pr.dO[x]));});
+      adds.forEach(function(s,x){box.append(rowEl('add','+',s,pr.aO[x]));});
       i=k; continue;
     }
     if(o.t==='+') box.append(rowEl('add','+',o.s)); else box.append(rowEl('eq','',o.s));
