@@ -802,8 +802,32 @@ var Y={state:'off',last:0,err:'',ver:{core:null,hist:null},rsig:{core:'',hist:''
 function loadAuth(){try{var r=JSON.parse(localStorage.getItem(AKEY)||'null');if(r&&r.on)A=Object.assign(A,r);}catch(_){}}
 function saveAuth(){try{localStorage.setItem(AKEY,JSON.stringify(A));}catch(_){}}
 
+/* ----- 로그인 자동 이어가기: 1시간짜리 열쇠가 끝나기 전에 조용히 새로 받는다 ----- */
+var renewT=0, gestureArmed=false;
+function scheduleRenew(){
+  clearTimeout(renewT); if(!A.on||!A.exp) return;
+  renewT=setTimeout(function(){silentRenew('timer');},Math.max(3000,A.exp-Date.now()-240000));
+}
+function silentRenew(why){
+  if(!A.on||!configured()||!navigator.onLine) return;
+  if(document.visibilityState!=='visible') return;
+  initTc(); if(!tc) return;
+  var now=Date.now(); if(why!=='timer'&&now-(Y.silentAt||0)<(why==='gesture'?4000:25000)) return;
+  Y.silentAt=now; Y.silent=true;
+  requestToken(false);
+}
+function armGesture(){
+  if(gestureArmed||!A.on) return; gestureArmed=true;
+  var evs=['pointerdown','pointerup','keydown'];
+  function go(){
+    if(navigator.userActivation&&!navigator.userActivation.isActive) return;   // 팝업이 허용되는 순간(손가락을 뗄 때 등)을 기다린다
+    gestureArmed=false; evs.forEach(function(e){document.removeEventListener(e,go,true);});
+    if(A.on&&(Y.state==='reauth'||Date.now()>A.exp-240000)) silentRenew('gesture');
+  }
+  evs.forEach(function(e){document.addEventListener(e,go,true);});
+}
 var tc=null;
-window.__gsi=function(){initTc();};
+window.__gsi=function(){initTc(); if(A.on&&Date.now()>A.exp) silentRenew('boot');};
 function initTc(){
   if(tc||!configured()||!window.google||!google.accounts||!google.accounts.oauth2) return;
   tc=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:onToken,error_callback:onTokErr});
@@ -818,14 +842,17 @@ function requestToken(interactive){
 }
 function onTokErr(err){
   var t=err&&err.type;
+  if(Y.silent){ Y.silent=false; if(A.on){ if(Date.now()>A.exp) setY('reauth'); armGesture(); } renderAcct(); return; }   // 조용한 재연결이 안 되면 알림 없이 배너만 둔다
   if(A.on) setY('reauth');
   if(t==='popup_failed_to_open') toast('로그인 창이 막혔어요. 팝업을 허용하고 다시 눌러 주세요');
   else if(t!=='popup_closed') toast('로그인하지 못했어요');
   renderAcct();
 }
 async function onToken(resp){
+  var wasSilent=Y.silent; Y.silent=false;
   if(!resp||resp.error||!resp.access_token){
-    if(A.on) setY('reauth'); if(resp&&resp.error&&resp.error!=='access_denied') toast('로그인하지 못했어요 ('+resp.error+')'); renderAcct(); return;
+    if(A.on){ if(!wasSilent||Date.now()>A.exp) setY('reauth'); if(wasSilent) armGesture(); }
+    if(!wasSilent&&resp&&resp.error&&resp.error!=='access_denied') toast('로그인하지 못했어요 ('+resp.error+')'); renderAcct(); return;
   }
   try{
     var need=SCOPE.split(' ')[0];
@@ -843,7 +870,7 @@ async function onToken(resp){
   if(S.owner&&A.email&&S.owner!==A.email&&!S.fresh){
     Y.pending={email:A.email}; A.on=false; saveAuth(); hideGate(); renderAcct(); openAcct(); return;
   }
-  S.owner=A.email||S.owner; A.on=true; saveAuth(); saveLS();
+  S.owner=A.email||S.owner; A.on=true; saveAuth(); saveLS(); scheduleRenew();
   setY('idle'); renderAcct(); renderAcctBtn();
   setGuest(false);
   var gateUp=$('#gate')&&!$('#gate').hidden;
@@ -907,7 +934,7 @@ function histPayload(){return {app:'plotnote',schema:1,savedAt:Date.now(),device
 
 /* ===== 동기화 엔진 ===== */
 var syncT=0, syncMaxT=0, histT=0, pollT=0;
-function setY(s,err){Y.state=s;if(err!==undefined)Y.err=err;refreshStatus();renderAcct();}
+function setY(s,err){Y.state=s; if(s==='reauth'&&A.on) armGesture();if(err!==undefined)Y.err=err;refreshStatus();renderAcct();}
 function scheduleSync(){
   if(!A.on) return;
   clearTimeout(syncT); syncT=setTimeout(function(){syncNow('edit');},PUSH_DELAY);
@@ -1996,13 +2023,13 @@ function boot(){
   bindOnce(); showAll();
   bootDone=true; purgeExpired(); saveLSNow();
   renderAcctBtn(); initTc();
-  if(A.on){ if(Date.now()>A.exp){setY('reauth');showGate('reauth');} else syncNow('launch',true); }
+  if(A.on){ if(Date.now()>A.exp){setY('reauth');silentRenew('boot');} else {syncNow('launch',true);scheduleRenew();} }
   else if(!isGuest()) showGate('login');
   refreshStatus();
   // 창을 보고 있는 동안 주기적으로 다른 기기의 변경을 확인한다
   setInterval(function(){if(A.on&&document.visibilityState==='visible'&&Y.state!=='reauth'&&!Y.running) syncNow('poll');},POLL_MS);
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&A.on&&Y.state!=='reauth') syncNow('visible');});
-  window.addEventListener('online',function(){if(A.on) syncNow('online',true);});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible'||!A.on) return; if(Y.state==='reauth'||Date.now()>A.exp-240000){silentRenew('visible');if(Y.state!=='reauth') syncNow('visible');} else syncNow('visible');});
+  window.addEventListener('online',function(){if(A.on){ if(Date.now()>A.exp-240000) silentRenew('online'); syncNow('online',true);} });
   window.addEventListener('offline',function(){if(A.on) setY('offline');});
 }
 boot();
