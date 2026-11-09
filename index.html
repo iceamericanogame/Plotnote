@@ -348,6 +348,13 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 .set-grp{display:flex;flex-direction:column;gap:6px}
 .set-lbl{font-size:12.5px;color:var(--ink-2);font-weight:600}
 .set-trash{justify-content:flex-start}.set-trash .set-go{margin-left:auto}.set-trash .set-go .ic{width:16px;height:16px}
+.fsel{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-size:15px;cursor:pointer;text-align:left}
+.fsel[aria-expanded=true]{border-color:var(--accent-line)}
+.fpv{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.8;background:var(--surface)}
+.fmenu{position:fixed;z-index:80;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgb(0 0 0 / .18);overflow:hidden}
+.fmi{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font-size:15px;cursor:pointer;text-align:left}
+.fmi:last-child{border-bottom:0}.fmi[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+.fmi small{font:11px var(--f-ui);color:var(--ink-2)}.fmi svg{width:15px;height:15px;display:block}
 .set-seg{align-self:flex-start}.set-seg button{padding:8px 16px;font-size:14px}
 
 .dr-act{display:flex;gap:6px}
@@ -449,7 +456,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
               <button class="ib" id="redo" aria-label="다시 실행" data-ico="redo"></button>
               <button class="ib" id="fontMinus" aria-label="글자 작게">가−</button>
               <button class="ib" id="fontPlus" aria-label="글자 크게">가+</button>
-              <button class="ib" id="fontFace" aria-label="서체 바꾸기">명조</button>
+              <button class="ib" id="fontFace" data-fmenu aria-haspopup="listbox" aria-expanded="false" aria-label="글꼴 바꾸기">명조</button>
               <button class="btn sm" id="snapBtn"><span data-ico="clock"></span>기록 남기기</button>
             </div>
           </div>
@@ -502,6 +509,11 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
     <section class="set-sec"><h3>휴지통</h3>
       <button class="btn set-trash" id="openTrash"><span data-ico="trash"></span><span id="trashLbl">휴지통</span><span class="set-go" data-ico="chevr"></span></button>
       <p class="muted sm" style="margin:0">지운 소설과 회차는 30일 동안 보관돼요. 여기서 복원할 수 있어요.</p>
+    </section>
+    <section class="set-sec"><h3>글쓰기 글꼴</h3>
+      <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="fpv" id="fontPv">가을 저녁, 서점 창가에 달빛이 내려앉았다. 문을 밀자 오래된 종이 냄새가 났다.</div>
+      <p class="muted sm" style="margin:0">글쓰기 화면의 본문과 제목에 적용돼요. 글쓰기 화면 아래 툴바의 글꼴 버튼으로도 바꿀 수 있어요. 이 기기에 저장돼요.</p>
     </section>
     <section class="set-sec"><h3>사용 안내</h3>
       <button class="btn set-trash" id="addGuide"><span data-ico="plus"></span>사용 안내 소설 추가</button>
@@ -1476,11 +1488,57 @@ function fitEd(){
   ed.style.height='auto'; ed.style.height=ed.scrollHeight+'px';
   sh.scrollTop=top;
 }
+var FONTS=[
+  {k:'serif',n:'노토 세리프',s:'명조',d:'기본',f:'var(--f-write)'},
+  {k:'batang',n:'고운 바탕',s:'바탕',d:'부드러운 명조',f:"'Gowun Batang','Noto Serif KR',serif"},
+  {k:'dodum',n:'고운 돋움',s:'돋움',d:'부드러운 고딕',f:"'Gowun Dodum','Pretendard Variable',Pretendard,sans-serif"},
+  {k:'sans',n:'프리텐다드',s:'고딕',d:'깔끔한 고딕',f:'var(--f-ui)'}];
+function fontOf(k){for(var i=0;i<FONTS.length;i++) if(FONTS[i].k===k) return FONTS[i]; return FONTS[0];}
+var fMenu=null, fAnchor=null;
+function closeFMenu(){
+  if(fMenu){fMenu.remove();fMenu=null;}
+  if(fAnchor){fAnchor.setAttribute('aria-expanded','false');fAnchor=null;}
+  document.removeEventListener('pointerdown',fOut,true);
+  document.removeEventListener('keydown',fKey,true);
+  window.removeEventListener('resize',closeFMenu);
+}
+function fOut(e){ if(fMenu&&!fMenu.contains(e.target)&&!(e.target.closest&&e.target.closest('[data-fmenu]'))) closeFMenu(); }
+function fKey(e){ if(e.key==='Escape'&&fMenu){e.stopImmediatePropagation();e.preventDefault();closeFMenu();} }
+function openFMenu(anchor){
+  if(fMenu){var same=(fAnchor===anchor); closeFMenu(); if(same) return;}
+  var cur=fontOf(S.prefs.font).k;
+  var m=document.createElement('div'); m.className='fmenu'; m.setAttribute('role','listbox');
+  FONTS.forEach(function(F){
+    var b=document.createElement('button'); b.type='button'; b.className='fmi'; b.setAttribute('role','option');
+    b.setAttribute('aria-selected',F.k===cur?'true':'false');
+    var n=document.createElement('span'); n.textContent=F.n; n.style.fontFamily=F.f; b.append(n);
+    var r=document.createElement('span'); r.className='fmr';
+    if(F.k===cur) r.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+    else {var sm=document.createElement('small'); sm.textContent=F.d; r.append(sm);}
+    b.append(r);
+    b.addEventListener('click',function(){S.prefs.font=F.k;applyPrefs();saveLS();closeFMenu();});
+    m.append(b);
+  });
+  m.addEventListener('pointerdown',function(e){e.preventDefault();});
+  document.body.append(m);
+  var a=anchor.getBoundingClientRect(), vw=window.innerWidth, vh=window.innerHeight;
+  var w=Math.max(a.width,214); m.style.width=w+'px';
+  var h=m.offsetHeight, left=Math.min(Math.max(8,a.left),vw-w-8);
+  var below=vh-a.bottom-8, above=a.top-8, top;
+  if(h<=below||below>=above) top=a.bottom+6; else top=a.top-h-6;
+  m.style.left=left+'px'; m.style.top=Math.max(8,top)+'px';
+  anchor.setAttribute('aria-expanded','true'); fAnchor=anchor; fMenu=m;
+  document.addEventListener('pointerdown',fOut,true);
+  document.addEventListener('keydown',fKey,true);
+  window.addEventListener('resize',closeFMenu);
+}
 function applyPrefs(){
   ed.style.fontSize=S.prefs.size+'px';
-  ed.style.fontFamily=S.prefs.font==='serif'?'var(--f-write)':'var(--f-ui)';
+  var F=fontOf(S.prefs.font); ed.style.fontFamily=F.f; var tt=document.querySelector('.ttl'); if(tt) tt.style.fontFamily=F.f;
   fitEd();
-  $('#fontFace').textContent=S.prefs.font==='serif'?'명조':'고딕';
+  $('#fontFace').textContent=F.s;
+  var fl=$('#fontSelL'); if(fl){fl.textContent=F.n; fl.style.fontFamily=F.f;}
+  var fp=$('#fontPv'); if(fp) fp.style.fontFamily=F.f;
 }
 function updateStats(){
   fitEd();
@@ -1943,7 +2001,8 @@ function bindOnce(){
   });
   $('#fontMinus').addEventListener('click',function(){S.prefs.size=Math.max(14,S.prefs.size-2);applyPrefs();saveLS();});
   $('#fontPlus').addEventListener('click',function(){S.prefs.size=Math.min(30,S.prefs.size+2);applyPrefs();saveLS();});
-  $('#fontFace').addEventListener('click',function(){S.prefs.font=S.prefs.font==='serif'?'sans':'serif';applyPrefs();saveLS();});
+  $('#fontFace').addEventListener('click',function(){openFMenu(this);});
+  $('#fontSel').addEventListener('click',function(){openFMenu(this);});
   $('#snapBtn').addEventListener('click',manualSnap);
   document.addEventListener('keydown',function(ev){
     if((ev.ctrlKey||ev.metaKey)&&(ev.key==='s'||ev.key==='S')){ev.preventDefault();if(S){manualSnap();syncNow('manual',true);}}
