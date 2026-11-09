@@ -1302,6 +1302,7 @@ function setTab(t){
   TABS.forEach(function(x){$('#pane-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t?'true':'false');});
   if(t==='board') renderBoard();
   if(t==='hist') renderHist();
+  if(t==='write') fitEd();
 }
 /* ---------- 삭제 모드 · 내려받기 ---------- */
 var DEL={on:false,docs:{},works:{}}, DLT=null;
@@ -1612,9 +1613,26 @@ function uhGo(dir){
   try{ if(document.activeElement===ed) ed.setSelectionRange(v.length,v.length);}catch(_){}
 }
 function fitEd(){
-  var sh=ed.parentNode, top=sh.scrollTop;
+  var sh=ed.parentNode;
+  if(!sh||!ed.getClientRects().length){fitEd.pending=true;return;}   // 안 보이는 동안 재면 0이 되므로, 보일 때 다시 잰다
+  fitEd.pending=false;
+  var top=sh.scrollTop;
   ed.style.height='auto'; ed.style.height=ed.scrollHeight+'px';
   sh.scrollTop=top;
+}
+function fitWatch(){
+  var w0=-1, raf=0;
+  function soon(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(function(){ if(typeof ed!=='undefined'&&ed) fitEd(); }); }
+  if(window.ResizeObserver){
+    new ResizeObserver(function(es){ var w=Math.round(es[0].contentRect.width); if(w!==w0||fitEd.pending){w0=w;soon();} }).observe(ed.parentNode);
+  }
+  window.addEventListener('resize',soon);
+  window.addEventListener('pageshow',soon);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') soon(); });
+  if(document.fonts){
+    if(document.fonts.addEventListener) document.fonts.addEventListener('loadingdone',soon);
+    if(document.fonts.ready) document.fonts.ready.then(soon);
+  }
 }
 var FONTS=[
   {k:'serif',n:'노토 세리프',s:'명조',d:'기본',f:'var(--f-write)'},
@@ -2120,7 +2138,7 @@ function saveFile(name,text){
 /* ---------- 시작 ---------- */
 function bindOnce(){
   if(inited) return; inited=true;
-  ed=$('#ed'); ttl=$('#ttl'); bd=$('#bd'); cv=$('#cv'); svg=$('#lnk');
+  ed=$('#ed'); ttl=$('#ttl'); bd=$('#bd'); cv=$('#cv'); svg=$('#lnk'); fitWatch();
   sizer=document.createElement('div'); sizer.className='sizer'; bd.insertBefore(sizer,cv); sizer.append(cv);
   fillIcons(document);
   applyTheme(getTheme());
