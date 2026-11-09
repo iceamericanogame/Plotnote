@@ -377,9 +377,10 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 #trashM .m-head>:last-child,#setM .m-head>:last-child{justify-self:end}
 #trashM .m-head h2,#setM .m-head h2{font:600 18px var(--f-ui);text-align:center;margin:0}
 
-.sheet{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:0}
-.sheet .crumb,.sheet .ttl{flex:none}
-.sheet .wbar{position:sticky;bottom:0;z-index:3;background:var(--editor);flex:none;border-radius:0 0 6px 6px;box-shadow:0 3px 0 var(--editor)}
+.sheet{overflow:hidden;padding-bottom:0}
+.sheet-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
+.sheet-scroll .crumb,.sheet-scroll .ttl{flex:none}
+.sheet .wbar{flex:none;background:var(--editor)}
 .sheet{isolation:isolate;margin-bottom:calc(10px + env(safe-area-inset-bottom,0px)*.5)}
 @media (min-width:900px){.sheet{margin-bottom:12px}}
 .ed{flex:1 0 auto;overflow:hidden;min-height:120px}
@@ -436,9 +437,11 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
     <main>
       <section class="pane" id="pane-write" role="tabpanel" aria-labelledby="tab-write">
         <div class="sheet">
+          <div class="sheet-scroll">
           <div class="crumb" id="crumb"></div>
           <input class="ttl" id="ttl" placeholder="회차 제목" aria-label="회차 제목" autocomplete="off">
           <textarea class="ed" id="ed" placeholder="여기에 이어서 써 보세요. 쓰는 대로 저절로 저장돼요." aria-label="원고" spellcheck="false"></textarea>
+          </div>
           <div class="wbar">
             <div class="stats" id="stats"></div>
             <div class="tools">
@@ -499,6 +502,10 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
     <section class="set-sec"><h3>휴지통</h3>
       <button class="btn set-trash" id="openTrash"><span data-ico="trash"></span><span id="trashLbl">휴지통</span><span class="set-go" data-ico="chevr"></span></button>
       <p class="muted sm" style="margin:0">지운 소설과 회차는 30일 동안 보관돼요. 여기서 복원할 수 있어요.</p>
+    </section>
+    <section class="set-sec"><h3>사용 안내</h3>
+      <button class="btn set-trash" id="addGuide"><span data-ico="plus"></span>사용 안내 소설 추가</button>
+      <p class="muted sm" style="margin:0">플롯노트 소개와 사용법을 담은 "플롯노트 안내" 소설을 내 소설 목록에 더해요. 필요 없으면 삭제해도 돼요.</p>
     </section>
     <section class="set-sec"><h3>화면 테마</h3>
       <div class="seg set-seg" id="themeSeg" role="group" aria-label="화면 테마"><button data-theme-set="light" aria-pressed="false">라이트</button><button data-theme-set="dark" aria-pressed="false">다크</button><button data-theme-set="system" aria-pressed="true">시스템</button></div>
@@ -690,7 +697,8 @@ var lastLocal=0, lsFail=false;
 var UI={sel:null,linking:false,hist:null,hmode:'diff'};
 var editingWork=null, migrated=false;
 
-var SEED_TEXT='비가 그친 새벽, 하랑은 골목 끝에서 불이 켜진 가게를 발견했다.\n\n간판은 없었다. 유리문 너머로 책장이 천장까지 닿아 있었고, 그 사이로 누군가 천천히 걷는 그림자가 보였다.\n\n며칠째 잠을 못 잔 탓인지 머릿속이 뿌옇게 흐려 있었다. 어떻게 해야 하지. 하랑은 혼잣말을 삼켰다.\n\n"문 열려 있어요."\n\n등 뒤에서 목소리가 들렸다. 돌아보니 우산을 접던 여자가 하랑을 올려다보고 있었다.\n\n"이 시간에 여는 서점은 여기밖에 없거든요."\n\n하랑은 대답 대신 손에 든 열쇠를 꽉 쥐었다. 열쇠는 어제까지만 해도 평범한 쇠붙이였는데, 지금은 문고리와 같은 온도로 따뜻했다.';
+var SEED_TEXT="지금 보고 있는 이 칸이 원고예요. 여기에 그냥 이어서 쓰면 돼요. 저장 버튼은 없어요. 쓰는 대로 저절로 저장돼요.\n\n왼쪽 위의 ☰ 버튼을 누르면 내 소설 목록이 열려요. 소설 안에 회차를 하나씩 쌓아 가는 구조예요. 소설을 새로 만들 때는 \"새 소설\"을, 회차를 더할 때는 소설 옆의 +를 누르면 돼요.\n\n위쪽에는 탭이 세 개 있어요.\n\n쓰기는 지금 이 화면이에요. 보드는 이야기를 정리하는 곳이고, 기록은 지난 글을 다시 꺼내 보는 곳이에요.\n\n이 글은 지우고 싶을 때 지워도 괜찮아요. 처음부터 마음 편히 시작하세요.\n\n자, 이제 플롯노트에서 첫 문장을 시작해 볼까요?";
+var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래의 \"기록 남기기\"를 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[삭제]\n내 소설 목록 위의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n소설이나 회차 옆의 ⬇ 버튼을 누르면 txt나 epub 파일로 받을 수 있어요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 글이 내 구글 드라이브에 저장돼요. 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 아이폰이나 아이패드에서는 공유 버튼에서 \"홈 화면에 추가\"를 누르면 앱처럼 쓸 수 있어요.";
 
 function newDoc(title,workId){var now=Date.now();return {id:uid(),workId:workId,title:title||'',text:'',created:now,updated:now};}
 function newWorkObj(title,id){var now=Date.now();return {id:id||uid(),title:title,created:now,updated:now};}
@@ -698,16 +706,16 @@ function seed(){
   var now=Date.now(), id=uid(), wid=uid(), ids=[uid(),uid(),uid(),uid(),uid()];
   return {
     fresh:true, tomb:{},
-    works:[{id:wid,title:'달빛 서점',created:now,updated:now}],
-    docs:[{id:id,workId:wid,title:'1화 달빛 서점',text:SEED_TEXT,created:now,updated:now,example:true}],
+    works:[{id:wid,title:'플롯노트 안내',created:now,updated:now}],
+    docs:[{id:id,workId:wid,title:'1화 플롯노트에 오신 걸 환영해요',text:SEED_TEXT,created:now,updated:now,example:true},
+      {id:uid(),workId:wid,title:'2화 이렇게 써 보세요',text:SEED_TEXT2,created:now,updated:now,example:true}],
     activeId:id,
     boards:{[id]:{updated:now,notes:[
-      {id:ids[0],x:60,y:60,c:0,t:'하랑 (주인공)\n말수가 적고 관찰력이 좋다. 불안하면 열쇠를 만지는 버릇이 있다.'},
-      {id:ids[1],x:320,y:40,c:2,t:'서윤 (서점 주인)\n우산을 접으며 나타난다. 하랑이 온 이유를 이미 아는 듯하다.'},
-      {id:ids[2],x:580,y:80,c:1,t:'열쇠\n어제부터 체온과 비슷한 온도. 서점 문과 연결되어 있을까?'},
-      {id:ids[3],x:150,y:290,c:3,t:'1화 목표\n서점의 존재감과 열쇠의 이상함을 보여 주기. 마지막 줄에 떡밥 하나.'},
-      {id:ids[4],x:430,y:310,c:4,t:'떡밥 후보\n서점에는 간판이 없다. 이유는 3화에서.'}
-    ],links:[{a:ids[0],b:ids[1]},{a:ids[0],b:ids[2]},{a:ids[1],b:ids[4]},{a:ids[3],b:ids[4]}]}},
+      {id:ids[0],x:60,y:60,c:0,t:'보드는 생각 정리 공간\n쓰다가 떠오른 설정이나 대사를 바로 메모해 두세요.'},
+      {id:ids[1],x:320,y:50,c:1,t:'색으로 나누기\n인물은 파랑, 장소는 보라처럼 나만의 규칙을 만들어 보세요.'},
+      {id:ids[2],x:200,y:260,c:2,t:'선으로 잇기\n관계가 있는 메모끼리 이어 두면 한눈에 보여요.'}
+    ],links:[{a:ids[0],b:ids[1]},{a:ids[0],b:ids[2]}]},
+      [wid]:{updated:now,notes:[{id:ids[3],x:80,y:80,c:3,t:'소설 공용 보드\n인물, 세계관처럼 모든 회차에서 함께 볼 설정은 여기에 모아 두세요.'}],links:[]}},
     versions:[],
     prefs:{size:17,font:'serif',tab:'write',scope:'doc',collapsed:{}}
   };
@@ -1213,6 +1221,18 @@ function exportItem(kind,id,fmt){
   var docs=workDocs(w.id).filter(function(d){return d.text&&d.text.trim();});
   if(!docs.length){toast('내보낼 글이 아직 없어요');return;}
   saveFile(safeName(w.title)+'.epub',makeEpub(w,docs,author));
+}
+function addGuide(){
+  var g=seed(), wk=g.works[0], oldId=wk.id, nid=uid(), now=Date.now();
+  wk.id=nid; wk.created=now; wk.updated=now; S.works.push(wk); persistWork(wk);
+  g.docs.forEach(function(d){d.workId=nid; d.created=now; d.updated=now; S.docs.push(d); persistDoc(d);});
+  Object.keys(g.boards).forEach(function(k){
+    var key=(k===oldId)?nid:k, b=g.boards[k]; b.updated=now; S.boards[key]=b;
+    if(typeof dbPut==='function') dbPut('b_'+key,boardBody(b),200);
+  });
+  S.prefs.collapsed[nid]=false;
+  showDoc(g.docs[0]); persistMeta(); renderDrawer(); closeSet(); setTab('write');
+  toast('「플롯노트 안내」 소설을 추가했어요');
 }
 function openDrawer(o){
   if(!o&&DEL.on){DEL.on=false;DEL.docs={};DEL.works={};renderDrawer();}
@@ -1851,6 +1871,7 @@ function bindOnce(){
   $('#newWork').addEventListener('click',addWork);
   $('#openTrash').addEventListener('click',openTrash);
   $('#openSet').addEventListener('click',openSet);
+  $('#addGuide').addEventListener('click',addGuide);
   $('#setX').addEventListener('click',closeSet);
   $('#trashX').addEventListener('click',closeTrash);
   $('#trashM').addEventListener('click',function(ev){if(ev.target===$('#trashM'))closeTrash();});
