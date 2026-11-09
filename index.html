@@ -117,9 +117,9 @@ h2,h3,p{margin:0}
 /* 서랍 (회차 목록) */
 .drawer{
   position:fixed; z-index:30; left:0;
-  top:env(safe-area-inset-top,0px); bottom:env(safe-area-inset-bottom,0px);
+  top:0; bottom:0;
   width:min(86vw,320px); background:var(--surface); border-right:1px solid var(--line);
-  padding:12px 12px 12px max(16px,env(safe-area-inset-left,0px));
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
   display:flex; flex-direction:column; gap:8px;
   transform:translateX(-102%); transition:transform .2s ease; box-shadow:var(--shadow);
 }
@@ -215,6 +215,7 @@ main{flex:1;min-height:0;position:relative}
 .sw button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
 .hint{font-size:12.5px;color:var(--ink-2);flex:1 1 14rem;min-width:10rem}
 .zoom{display:flex;gap:4px;align-items:center}
+.zoom .btn.sm{min-height:38px;height:38px;font-size:13px;font-weight:600}
 .zv{min-width:58px;font-size:12.5px;font-variant-numeric:tabular-nums}
 .bd{flex:1;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:12px;background-color:var(--surface);background-image:radial-gradient(var(--line) 1px,transparent 1.2px);background-size:22px 22px;position:relative;overscroll-behavior:contain;touch-action:pan-x pan-y;background-attachment:local;margin-bottom:10px}
 .sizer{position:relative}
@@ -228,6 +229,7 @@ main{flex:1;min-height:0;position:relative}
 .nt{border:0;background:transparent;resize:none;font:16px/1.45 var(--f-note);color:var(--note-ink);padding:8px 10px 12px;outline:none;min-height:64px;width:100%;overflow:hidden;display:block}
 .cv.linking .nt{pointer-events:none}
 .cv.linking .note{cursor:pointer}
+.cv.linking .note.lk::after{content:'✓';position:absolute;right:6px;bottom:6px;width:22px;height:22px;border-radius:50%;background:var(--accent-ink);color:var(--surface);display:grid;place-items:center;font-size:13px;font-weight:700;pointer-events:none}
 .cv.linking .note:not(.sel):hover{outline:2px dashed var(--accent);outline-offset:2px}
 .bd-empty{position:absolute;left:48px;top:48px;width:min(320px,70vw);color:var(--ink-2);display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 
@@ -436,6 +438,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
       <button class="acct" id="acctBtn" aria-label="구글 로그인"></button>
     </header>
     <div class="store-note" id="reBanner" hidden><span>구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.</span><button id="reBtn">다시 연결</button></div>
+    <div class="store-note" id="cfBanner" hidden><span id="cfTxt"></span><button id="cfOpen">확인하기</button></div>
     <nav class="tabs" role="tablist" aria-label="작업 화면">
       <button class="tab" role="tab" id="tab-write" data-tab="write" aria-selected="true">쓰기</button>
       <button class="tab" role="tab" id="tab-board" data-tab="board" aria-selected="false">보드</button>
@@ -467,7 +470,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
         <div class="bd-bar">
           <button class="btn accent" id="addNote"><span data-ico="plus"></span>포스트잇</button>
           <div class="sw" id="sw" role="group" aria-label="포스트잇 색"></div>
-          <button class="btn" id="linkBtn" aria-pressed="false"><span data-ico="link"></span>연결</button>
+          <button class="btn" id="linkBtn" aria-pressed="false"><span data-ico="link"></span><span id="linkLbl">연결</span></button>
           <button class="btn danger-o" id="delNote"><span data-ico="trash"></span>삭제</button>
           <div class="seg" id="scope" role="group" aria-label="보드 범위"><button data-scope="doc" aria-pressed="true">이 회차</button><button data-scope="work" aria-pressed="false">소설 공용</button></div>
           <div class="zoom" role="group" aria-label="확대 축소"><button class="ib" id="zOut" aria-label="축소">−</button><button class="ib zv" id="zVal" aria-label="100%로 되돌리기">100%</button><button class="ib" id="zIn" aria-label="확대">+</button><button class="btn sm" id="zFit">전체 보기</button></div>
@@ -531,6 +534,22 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
     <div class="m-list" id="trashList"></div>
   </div>
 </div>
+<div class="modal" id="cfM" role="dialog" aria-modal="true" aria-labelledby="cfT" hidden>
+  <div class="modal-panel">
+    <h2 id="cfT" style="margin:0;font-size:18px">같은 회차를 두 곳에서 고쳤어요</h2>
+    <p class="muted sm" id="cfSub" style="margin:0"></p>
+    <div id="cfBody" class="cf-body"></div>
+    <div class="cf-act"><button class="btn accent" id="cfKeep"></button><button class="btn" id="cfSwap"></button><button class="btn ghost" id="cfLater">나중에 정하기</button></div>
+  </div>
+</div>
+<style>
+.cf-body{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
+.cf-box{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}
+.cf-box.cur{border-color:var(--accent-line)}
+.cf-lab{font-size:13px;margin-bottom:6px}
+.cf-pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.7 var(--f-write);max-height:22vh;overflow:auto}
+.cf-act{display:flex;flex-direction:column;gap:6px}.cf-act .btn{justify-content:center}
+</style>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateT" hidden>
   <div class="gate-card"><h1 class="gate-brand" id="gateT"><span class="logo logo-lg" role="img" aria-label="플롯노트"></span></h1><p class="gate-sub">소설을 쓰고, 포스트잇으로 구상하고, 어디서든 이어 쓰세요.</p><div class="gate-body" id="gateBody"></div></div>
 </div>
@@ -550,6 +569,39 @@ function stats(text){
   var exc=Array.from(flat.replace(/\s+/g,'')).length;
   return {inc:inc,exc:exc,pages:inc/200};
 }
+/* Myers O(ND) 비교: 고친 곳이 적으면 아주 긴 글도 빠르게 정확히 맞춘다. 너무 많이 다르면 null */
+function myersMatch(a,b,maxD){
+  var n=a.length,m=b.length,s=0;
+  while(s<n&&s<m&&a[s]===b[s]) s++;
+  var e=0; while(e<n-s&&e<m-s&&a[n-1-e]===b[m-1-e]) e++;
+  var ma=new Array(n).fill(false), mb=new Array(m).fill(false), i;
+  for(i=0;i<s;i++){ma[i]=true;mb[i]=true;}
+  for(i=0;i<e;i++){ma[n-1-i]=true;mb[m-1-i]=true;}
+  var A=a.slice(s,n-e), B=b.slice(s,m-e), N=A.length, M=B.length;
+  if(!N||!M) return {ma:ma,mb:mb};
+  var max=Math.min(N+M,maxD||2500), off=max+2, V=new Int32Array(2*max+5), trace=[], d, k, x, y, found=-1;
+  for(d=0;d<=max&&found<0;d++){
+    trace.push(V.slice(off-d-1,off+d+2));
+    for(k=-d;k<=d;k+=2){
+      if(k===-d||(k!==d&&V[off+k-1]<V[off+k+1])) x=V[off+k+1]; else x=V[off+k-1]+1;
+      y=x-k;
+      while(x<N&&y<M&&A[x]===B[y]){x++;y++;}
+      V[off+k]=x;
+      if(x>=N&&y>=M){found=d;break;}
+    }
+  }
+  if(found<0) return null;
+  x=N; y=M;
+  for(d=found;d>=0;d--){
+    var Vp=trace[d], base=d+1, kk=x-y, pk, px, py;
+    if(d===0){ while(x>0&&y>0){x--;y--;ma[s+x]=true;mb[s+y]=true;} break; }
+    if(kk===-d||(kk!==d&&Vp[kk-1+base]<Vp[kk+1+base])) pk=kk+1; else pk=kk-1;
+    px=Vp[pk+base]; py=px-pk;
+    while(x>px&&y>py){x--;y--;ma[s+x]=true;mb[s+y]=true;}
+    x=px; y=py;
+  }
+  return {ma:ma,mb:mb};
+}
 function diffLines(aTxt,bTxt){
   var a=aTxt.split('\n'), b=bTxt.split('\n');
   var s=0; while(s<a.length&&s<b.length&&a[s]===b[s]) s++;
@@ -558,8 +610,17 @@ function diffLines(aTxt,bTxt){
   var A=a.slice(s,ea), B=b.slice(s,eb), ops=[], i, j;
   for(i=0;i<s;i++) ops.push({t:'=',s:a[i]});
   var mid=[];
-  if(A.length*B.length>4000000){
+  var big=A.length*B.length>4000000, my=big?myersMatch(A,B,3000):null;
+  if(big&&!my){
     A.forEach(function(x){mid.push({t:'-',s:x});}); B.forEach(function(x){mid.push({t:'+',s:x});});
+  } else if(big){
+    i=0; j=0;
+    while(i<A.length||j<B.length){
+      if(i<A.length&&j<B.length&&my.ma[i]&&my.mb[j]){mid.push({t:'=',s:A[i]});i++;j++;}
+      else if(i<A.length&&!my.ma[i]){mid.push({t:'-',s:A[i]});i++;}
+      else if(j<B.length&&!my.mb[j]){mid.push({t:'+',s:B[j]});j++;}
+      else {mid.push({t:'-',s:A[i]});i++;}
+    }
   } else {
     var n=A.length, m=B.length, W=m+1, dp=new Int32Array((n+1)*(m+1));
     for(i=n-1;i>=0;i--) for(j=m-1;j>=0;j--)
@@ -591,8 +652,10 @@ function mergeById(l,r,tomb,onOver){
   (l||[]).forEach(function(x){
     if(!x||!x.id||tomb[x.id]) return;
     var y=m.get(x.id);
-    if(!y||(x.updated||0)>(y.updated||0)) m.set(x.id,x);
-    else if(y!==x&&(y.updated||0)>(x.updated||0)&&onOver) onOver(x,y);
+    if(!y){m.set(x.id,x);return;}
+    if(y===x) return;
+    if((x.updated||0)>(y.updated||0)){ m.set(x.id,x); if(onOver) onOver(y,x,false); }   // 내 쪽이 더 늦음 → 상대(받아온) 글이 진다
+    else if(onOver) onOver(x,y,true);                                                    // 상대가 더 늦거나 같음 → 내 글이 진다
   });
   return Array.from(m.values()).sort(function(a,b){return (a.created||0)-(b.created||0)||(a.id<b.id?-1:1);});
 }
@@ -601,11 +664,13 @@ function mergeCore(local,rem,opt){
   opt=opt||{}; local=local||{}; rem=rem||{};
   var tomb=Object.assign({},rem.tomb||{}), lt=local.tomb||{};
   Object.keys(lt).forEach(function(k){if(!(tomb[k]>=lt[k]))tomb[k]=lt[k];});
-  var over=[];
+  var over=[], conf=[];
   var ld=opt.dropLocal?[]:local.docs, lw=opt.dropLocal?[]:local.works, lb=opt.dropLocal?{}:(local.boards||{});
-  var docs=mergeById(ld,rem.docs,tomb,function(mine,theirs){
-    // 내 쪽이 마지막 동기화 뒤에 고쳐졌는데 상대가 더 늦으면, 내 글은 기록으로 남긴다
-    if(opt.since&&(mine.updated||0)>opt.since&&mine.text&&mine.text!==theirs.text) over.push(mine);
+  var docs=mergeById(ld,rem.docs,tomb,function(loser,winner,mine){
+    // 두 기기가 마지막 동기화 뒤에 서로 다르게 고쳤다면, 진 쪽 글은 반드시 기록으로 남기고 충돌로 알린다
+    if(!(loser.text&&loser.text!==winner.text)) return;
+    if(opt.since&&(loser.updated||0)<=opt.since) return;   // 이미 한 번 받아 본 글이면 충돌이 아님
+    over.push(loser); conf.push({loser:loser,winner:winner,mine:mine});
   });
   var works=mergeById(lw,rem.works,tomb);
   var boards={}, rb=rem.boards||{};
@@ -615,7 +680,7 @@ function mergeCore(local,rem,opt){
     var r=boards[k];
     if(!r||(l.updated||0)>(r.updated||0)) boards[k]=l;
   });
-  return {docs:docs,works:works,boards:boards,tomb:tomb,over:over};
+  return {docs:docs,works:works,boards:boards,tomb:tomb,over:over,conf:conf};
 }
 function mergeHist(l,r,tomb){
   var m=new Map();
@@ -1019,16 +1084,79 @@ function applyRemote(rc,rh){
   if(rc){
     var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
-    m.over.forEach(function(d){   // 내 쪽의 안 올라간 수정이 상대 것에 밀리면, 내 글을 기록으로 남겨 둔다
-      S.versions.push({id:uid(),docId:d.id,t:d.updated||Date.now(),title:d.title,text:d.text,reason:'sync'});
+    (m.conf||[]).forEach(function(c){   // 두 기기가 다르게 고친 회차: 진 쪽 글을 기록에 남기고, 고를 수 있게 알린다
+      var L=c.loser, vv=S.versions.filter(function(x){return x.docId===L.id&&x.text===L.text;})[0];
+      if(!vv){vv={id:uid(),docId:L.id,t:L.updated||Date.now(),title:L.title,text:L.text,reason:'sync'};S.versions.push(vv);}
+      if(!Array.isArray(S.conf)) S.conf=[];
+      if(!S.conf.some(function(k){return k.docId===L.id&&k.vid===vv.id;}))
+        S.conf.push({id:uid(),docId:L.id,vid:vv.id,mine:c.mine,t:Date.now(),wt:c.winner.updated||0,lt:L.updated||0});
     });
     if(dropLocal) S.fresh=false;
   }
   S.versions=mergeHist(S.versions,rh?rh.versions:[],S.tomb);
   if(rc||rh){ migrated=false; S=normalize(S); if(migrated){migrated=false;markDirty();} }
   if(before===sigCore(S)+'#'+sigHist(S)) return;
-  saveLSNow(); refreshAfterRemote(prevActive,prevText);
+  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false);
 }
+
+/* ===== 충돌: 같은 회차를 두 기기에서 다르게 고쳤을 때 ===== */
+function confList(){
+  if(!Array.isArray(S.conf)) S.conf=[];
+  S.conf=S.conf.filter(function(k){
+    var d=S.docs.find(function(x){return x.id===k.docId;});
+    return d&&!d.trashed&&S.versions.some(function(v){return v.id===k.vid;});
+  });
+  return S.conf;
+}
+function renderConf(open){
+  if(!S) return;
+  var L=confList(), bn=$('#cfBanner'); if(!bn) return;
+  bn.hidden=!L.length;
+  if(L.length) $('#cfTxt').textContent='같은 회차를 두 곳에서 다르게 고쳤어요 ('+L.length+'건). 두 글 모두 기록에 남아 있어요.';
+  if(!L.length){ $('#cfM').hidden=true; return; }
+  if(open===true||!$('#cfM').hidden) fillConf();
+  if(open===true) $('#cfM').hidden=false;
+}
+function cfBox(label,time,text,tag){
+  var box=h('div',{class:'cf-box'},
+    h('div',{class:'cf-lab'},h('b',{text:label}),h('span',{class:'muted',text:' · '+time+' · '+NF.format(text.length)+'자'})),
+    h('pre',{class:'cf-pre',text:text||'(비어 있음)'}));
+  if(tag) box.classList.add(tag); return box;
+}
+function fillConf(){
+  var L=confList(); if(!L.length){$('#cfM').hidden=true;return;}
+  var k=L[0], d=S.docs.find(function(x){return x.id===k.docId;}), v=S.versions.find(function(x){return x.id===k.vid;});
+  var altWho=k.mine?'이 기기에서 쓴 글':'다른 기기에서 쓴 글';
+  $('#cfT').textContent='같은 회차를 두 곳에서 고쳤어요'+(L.length>1?' ('+1+'/'+L.length+')':'');
+  $('#cfSub').textContent='「'+(d.title||'제목 없음')+'」 — 어느 쪽 글을 쓸지 골라 주세요. 어느 쪽을 고르든 다른 글은 기록에 남아요.';
+  var body=$('#cfBody'); body.textContent='';
+  body.append(
+    cfBox('지금 글 (더 늦게 고친 글)',when(k.wt||d.updated),d.text,'cur'),
+    cfBox(altWho,when(k.lt||v.t),v.text,'alt'));
+  $('#cfKeep').textContent='지금 글 그대로 쓰기'; $('#cfSwap').textContent='"'+altWho+'"로 바꾸기';
+}
+function cfDone(){
+  var L=confList(); if(!L.length){$('#cfM').hidden=true;renderConf(false);return;}
+  fillConf(); renderConf(false);
+}
+function bindConf(){
+  $('#cfOpen').addEventListener('click',function(){renderConf(true);});
+  $('#cfLater').addEventListener('click',function(){$('#cfM').hidden=true;});
+  $('#cfM').addEventListener('click',function(ev){if(ev.target===$('#cfM'))$('#cfM').hidden=true;});
+  $('#cfKeep').addEventListener('click',function(){
+    var L=confList(); if(!L.length) return; S.conf.shift(); saveLSNow(); toast('지금 글을 그대로 쓸게요. 다른 글은 기록에 있어요.'); cfDone();
+  });
+  $('#cfSwap').addEventListener('click',function(){
+    var L=confList(); if(!L.length) return; var k=L[0];
+    var d=S.docs.find(function(x){return x.id===k.docId;}), v=S.versions.find(function(x){return x.id===k.vid;}); if(!d||!v) return;
+    addVersion(d,'before-restore');                   // 지금 글도 기록에 남긴 뒤에 바꾼다
+    d.title=v.title||d.title; d.text=v.text; d.updated=Date.now(); delete d.example;
+    S.conf.shift(); persistDoc(d);
+    if(d.id===S.activeId){ed.value=d.text;ttl.value=d.title;updateStats();uhReset();updateCrumb();}
+    renderDrawer(); saveLSNow(); toast('바꿨어요. 바꾸기 직전 글도 기록에 남아 있어요.'); cfDone();
+  });
+}
+
 function refreshAfterRemote(prevActive,prevText){
   var d=cur(); if(!d) return;
   renderDrawer(); updateTrashLbl();
@@ -1578,7 +1706,7 @@ function pruneVers(docId){
   var over=list.length-40; if(over<=0) return;
   var drop=[];
   list.forEach(function(v){if(drop.length<over&&v.reason==='auto')drop.push(v);});
-  list.forEach(function(v){if(drop.length<over&&drop.indexOf(v)<0)drop.push(v);});
+  list.forEach(function(v){if(drop.length<over&&drop.indexOf(v)<0&&v.reason!=='sync')drop.push(v);});
   drop.forEach(delVersion);
 }
 function manualSnap(){
@@ -1656,7 +1784,7 @@ function noteEl(n){
     ev.preventDefault();ev.stopPropagation();
     if(n.id===UI.sel) return;
     toggleLink(UI.sel,n.id);
-    UI.linking=false;cv.classList.remove('linking');syncBoardBar();
+    syncBoardBar();
   },true);
   grip.addEventListener('pointerdown',function(ev){
     if(UI.linking) return;
@@ -1687,10 +1815,13 @@ function selectNote(id){
 }
 function syncBoardBar(){
   var n=UI.sel&&noteById(UI.sel), has=!!n;
-  $$('#sw button').forEach(function(b,i){b.disabled=!has;b.setAttribute('aria-pressed',has&&n.c===i?'true':'false');});
+  $$('#sw button').forEach(function(b,i){b.disabled=false;b.setAttribute('aria-pressed',(has?n.c:penC())===i?'true':'false');});
   $('#linkBtn').disabled=!has; $('#linkBtn').setAttribute('aria-pressed',UI.linking?'true':'false');
+  $('#linkLbl').textContent=UI.linking?'연결 끝내기':'연결';
+  var lk={}; if(UI.linking&&has) curBoard().links.forEach(function(l){if(l.a===n.id)lk[l.b]=1;else if(l.b===n.id)lk[l.a]=1;});
+  $$('.note',cv).forEach(function(x){x.classList.toggle('lk',!!lk[x.getAttribute('data-id')]);});
   $('#delNote').disabled=!has;
-  var tail=UI.linking?'이어 줄 다른 포스트잇을 탭하세요. 이미 이어져 있으면 연결이 끊겨요.':has?'위쪽 바를 끌어서 옮겨요.':'포스트잇을 탭해서 고르세요.';
+  var tail=UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌어서 옮겨요.':'포스트잇을 탭해서 고르세요.';
   var lbl=S.prefs.scope==='work'?'「'+curWork().title+'」 소설 공용 보드':'「'+(cur().title||'제목 없음')+'」 회차 보드';
   $('#bdHint').textContent=lbl+' · '+tail;
 }
@@ -1706,17 +1837,20 @@ function drawLinks(){
     p.setAttribute('class','ln'); svg.append(p);
   });
 }
-function toggleLink(a,b){
+function toggleLink(a,b,quiet){
   var bd0=curBoard();
   var i=bd0.links.findIndex(function(l){return (l.a===a&&l.b===b)||(l.a===b&&l.b===a);});
-  if(i>=0){bd0.links.splice(i,1);toast('연결을 끊었어요');}
-  else{bd0.links.push({a:a,b:b});toast('연결했어요');}
+  if(i>=0){bd0.links.splice(i,1);if(!quiet)toast('연결을 끊었어요','되돌리기',function(){toggleLink(a,b,true);syncBoardBar();});}
+  else{bd0.links.push({a:a,b:b});if(!quiet)toast('연결했어요');}
   drawLinks(); persistBoard();
 }
+function endLink(){ if(!UI.linking) return; UI.linking=false; cv.classList.remove('linking'); syncBoardBar(); }
+document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'&&UI.linking&&!ev.defaultPrevented) endLink(); });
+function penC(){var p=S.prefs.pen;return (typeof p==='number'&&p>=0&&p<NCOLORS)?p:0;}
 function addNote(x,y){
   var b0=curBoard();
   if(x==null){var z0=zoom(); x=(bd.scrollLeft+bd.clientWidth/2)/z0-100+(Math.random()*40-20);y=(bd.scrollTop+bd.clientHeight/3)/z0+(Math.random()*40-20);}
-  var n={id:uid(),x:Math.max(0,Math.min(CW-210,Math.round(x))),y:Math.max(0,Math.min(CH-90,Math.round(y))),c:b0.notes.length%NCOLORS,t:''};
+  var n={id:uid(),x:Math.max(0,Math.min(CW-210,Math.round(x))),y:Math.max(0,Math.min(CH-90,Math.round(y))),c:penC(),t:''};
   b0.notes.push(n); persistBoard();
   var e=noteEl(n); cv.append(e); $('#bdEmpty').hidden=true;
   selectNote(n.id); autosize($('.nt',e)); drawLinks();
@@ -1781,7 +1915,8 @@ function renderHistDetail(list){
 var TOKRE=/[\p{L}\p{N}_]+|\s+|[^\s\p{L}\p{N}_]/gu;
 function wTok(x){return x.match(TOKRE)||[];}
 function wLcs(a,b){
-  var n=a.length,m=b.length; if(!n||!m||n*m>1500000) return null;
+  var n=a.length,m=b.length; if(!n||!m) return null;
+  if(n*m>1500000){ var my=myersMatch(a,b,2500); if(!my) return null; var c=0; my.ma.forEach(function(t){if(t)c++;}); return {ma:my.ma,mb:my.mb,len:c}; }
   var W=m+1,dp=new Uint16Array((n+1)*W),i,j;
   for(i=n-1;i>=0;i--)for(j=m-1;j>=0;j--)dp[i*W+j]=a[i]===b[j]?dp[(i+1)*W+j+1]+1:Math.max(dp[(i+1)*W+j],dp[i*W+j+1]);
   var ma=new Array(n).fill(false),mb=new Array(m).fill(false); i=0;j=0;
@@ -1821,6 +1956,43 @@ function marksToNodes(s,mk){
   flush();
   return out.length?out:[document.createTextNode(' ')];
 }
+/* 바뀐 덩어리(삭제 줄들·추가 줄들) 전체를 한꺼번에 비교해서, 문단을 합치거나 나눠도 바뀐 곳만 칠한다 */
+function blockMarks(dels,adds){
+  var DS=dels.join('\n'), AS=adds.join('\n');
+  var ta=wTok(DS), tb=wTok(AS), r=wLcs(ta,tb); if(!r) return null;
+  function side(tok,flags,str){
+    var mk=new Array(str.length).fill(false), ia=[], i, pos=[0];
+    tok.forEach(function(t,k){pos.push(pos[k]+t.length);});
+    return {mk:mk,pos:pos};
+  }
+  var oa=side(ta,r.ma,DS), ob=side(tb,r.mb,AS);
+  function fill(sd,tok,flags,other,otok,oflags){
+    var ia=[],ib=[],i;
+    tok.forEach(function(t,k){if(flags[k])ia.push(k);}); otok.forEach(function(t,k){if(oflags[k])ib.push(k);});
+    for(i=0;i<=ia.length;i++){
+      var a0=i?ia[i-1]+1:0,a1=i<ia.length?ia[i]:tok.length,b0=i?ib[i-1]+1:0,b1=i<ib.length?ib[i]:otok.length;
+      if(a1<=a0) continue;
+      var sa=tok.slice(a0,a1).join(''), sb=otok.slice(b0,b1).join(''), p=0,q=0;
+      while(p<sa.length&&p<sb.length&&sa[p]===sb[p]) p++;
+      while(q<sa.length-p&&q<sb.length-p&&sa[sa.length-1-q]===sb[sb.length-1-q]) q++;
+      for(var c=p;c<sa.length-q;c++) sd.mk[sd.pos[a0]+c]=true;
+    }
+  }
+  fill(oa,ta,r.ma,ob,tb,r.mb); fill(ob,tb,r.mb,oa,ta,r.ma);
+  function cut(lines,mk){
+    var out=[],nl=[],p=0;
+    lines.forEach(function(s,x){out.push(mk.slice(p,p+s.length)); p+=s.length; nl.push(x<lines.length-1&&!!mk[p]); p++;});
+    return {m:out,n:nl};
+  }
+  var cd=cut(dels,oa.mk), ca=cut(adds,ob.mk);
+  return {dm:cd.m,dn:cd.n,am:ca.m,an:ca.n};
+}
+function rowMarked(kind,sign,s,mk,nl){
+  if(!mk.some(Boolean)&&!nl) return null;
+  var kids=marksToNodes(s,mk);
+  if(nl){var m=document.createElement('mark');m.textContent='↵';m.title='줄바꿈';kids=kids.concat([m]);}
+  return h('div',{class:'dl '+kind},h('span',{class:'sg',text:sign}),h('span',{class:'tx'},kids));
+}
 function pairLines(dels,adds){
   var dO=new Array(dels.length), aO=new Array(adds.length), j=0, i, k;
   if(dels.length*adds.length>2500){ for(i=0;i<Math.min(dels.length,adds.length);i++){dO[i]=adds[i];aO[i]=dels[i];} return {dO:dO,aO:aO}; }
@@ -1854,9 +2026,15 @@ function renderDiff(ops){
       var k=i, dels=[], adds=[];
       while(k<n&&ops[k].t==='-'){dels.push(ops[k].s);k++;}
       while(k<n&&ops[k].t==='+'){adds.push(ops[k].s);k++;}
+      var bm=blockMarks(dels,adds);
+      if(bm){
+        dels.forEach(function(s,x){var e=rowMarked('del','−',s,bm.dm[x],bm.dn[x]);if(e)box.append(e);});
+        adds.forEach(function(s,x){var e=rowMarked('add','+',s,bm.am[x],bm.an[x]);if(e)box.append(e);});
+      } else {
       var pr=pairLines(dels,adds);
       dels.forEach(function(s,x){var e=rowEl('del','−',s,pr.dO[x]);if(e)box.append(e);});
       adds.forEach(function(s,x){var e=rowEl('add','+',s,pr.aO[x]);if(e)box.append(e);});
+      }
       i=k; continue;
     }
     if(o.t==='+') box.append(rowEl('add','+',o.s)); else box.append(rowEl('eq','',o.s));
@@ -1973,6 +2151,7 @@ function bindOnce(){
   $('#acctX').addEventListener('click',closeAcct);
   $('#acctM').addEventListener('click',function(ev){if(ev.target===$('#acctM'))closeAcct();});
   $('#reBtn').addEventListener('click',function(){requestToken(false);});
+  bindConf();
   $('#save').addEventListener('click',function(){
     if(!A.on) openAcct(); else if(Y.state==='reauth') requestToken(false); else if(Y.state==='error'||Y.state==='offline') openAcct(); else syncNow('manual',true);
   });
@@ -2011,7 +2190,8 @@ function bindOnce(){
   var sw=$('#sw');
   for(var i=0;i<NCOLORS;i++)(function(i){
     var b=h('button',{'aria-label':'색 '+(i+1),'aria-pressed':'false',onclick:function(){
-      var n=noteById(UI.sel); if(!n) return; n.c=i;
+      S.prefs.pen=i; saveLS();
+      var n=noteById(UI.sel); if(!n){syncBoardBar();return;} n.c=i;
       var e=$('.note[data-id="'+n.id+'"]',cv); if(e) e.style.background='var(--n'+i+')';
       persistBoard(); syncBoardBar();
     }});
@@ -2049,6 +2229,7 @@ function bindOnce(){
   $('#delNote').addEventListener('click',function(ev){askDel(ev.currentTarget,deleteSelected);});
   cv.addEventListener('pointerdown',function(ev){
     if(ev.target!==cv) return;
+    if(UI.linking) return;   // 연결 중에는 빈 곳을 눌러도 모드가 끝나지 않는다 (밀어서 이동할 수 있게)
     UI.sel=null; UI.linking=false; cv.classList.remove('linking');
     $$('.note',cv).forEach(function(x){x.classList.remove('sel');});
     if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
@@ -2080,7 +2261,7 @@ function boot(){
   var ls=loadLS();
   if(ls) S=normalize(ls); else {S=normalize(seed());}
   bindOnce(); showAll();
-  bootDone=true; purgeExpired(); saveLSNow();
+  bootDone=true; purgeExpired(); saveLSNow(); renderConf(false);
   renderAcctBtn(); initTc();
   if(A.on){ if(Date.now()>A.exp){setY('reauth');silentRenew('boot');} else {syncNow('launch',true);scheduleRenew();} }
   else if(!isGuest()) showGate('login');
