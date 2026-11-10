@@ -470,6 +470,10 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .diff .empty{font:12px var(--f-ui);color:var(--ink-2)}
 .dl.inl .sg{color:var(--ink-3)}.dl.inl .sg.del{color:#C0543F}.dl.inl .sg.add{color:#3F7FCB}
 .cblk{border-radius:8px}
+
+/* 기록 목록: 바로 전 기록보다 추가·삭제한 글자 수 */
+.vrow .vch{color:var(--ink-2)}
+.vrow .v-add{color:#3F7FCB;font-weight:500}.vrow .v-del{color:#C0543F;font-weight:500}
 </style>
 </head>
 <body>
@@ -2214,6 +2218,40 @@ function bdelGo(){
 
 /* ---------- 기록 ---------- */
 var REASON={auto:'자동 기록',manual:'직접 기록','before-restore':'되돌리기 직전','before-spell':'맞춤법 적용 직전',sync:'동기화 때 덮인 글',import:'백업에서 가져온 글','before-import':'백업 가져오기 전 글'};
+var VCH={};
+/* 기록 비교 화면에 칠해지는 것과 똑같이 센다: 지운 글자·추가된 글자 수(줄바꿈 제외) */
+function blockCount(dels,adds){
+  var add=0, del=0;
+  function n(mk){var c=0;for(var k=0;k<mk.length;k++) if(mk[k]) c++; return c;}
+  if(dels.length&&adds.length&&dels.length!==adds.length){
+    var bm=blockMarks(dels,adds);
+    if(bm){ bm.dm.forEach(function(m){del+=n(m);}); bm.am.forEach(function(m){add+=n(m);}); return {add:add,del:del}; }
+  }
+  var dI=pairIdx(dels,adds), used={};
+  dels.forEach(function(a,x){
+    var y=dI[x];
+    if(y==null){ del+=a.length; return; }
+    used[y]=1;
+    var b=adds[y], r=inlineNodes(a,b);
+    if(r&&r.same) return;
+    if(r&&r.ratio<=0.5) r.parts.forEach(function(p){ if(p.k==='d') del+=p.s.length; else if(p.k==='a') add+=p.s.length; });
+    else { del+=n(charMarks(a,b)); add+=n(charMarks(b,a)); }
+  });
+  adds.forEach(function(b,y){ if(!used[y]) add+=b.length; });
+  return {add:add,del:del};
+}
+function verChange(a,b){
+  var key=a.length+':'+b.length+':'+a.slice(0,40)+'|'+b.slice(0,40)+'|'+a.slice(-40)+'|'+b.slice(-40);
+  if(VCH[key]&&VCH[key].a===a&&VCH[key].b===b) return VCH[key].r;
+  var ops=diffLines(a,b), add=0, del=0, i=0;
+  function cnt(s){return s.length;}
+  while(i<ops.length){
+    if(ops[i].t==='='){i++;continue;}
+    var dels=[],adds=[]; while(i<ops.length&&ops[i].t!=='='){(ops[i].t==='-'?dels:adds).push(ops[i].s);i++;}
+    var c=blockCount(dels,adds); add+=c.add; del+=c.del;
+  }
+  var r={add:add,del:del}; VCH[key]={a:a,b:b,r:r}; return r;
+}
 function renderHist(){
   var d=cur(); if(!d) return;
   var list=S.versions.filter(function(v){return v.docId===d.id;}).sort(function(a,b){return b.t-a.t;});
@@ -2223,11 +2261,12 @@ function renderHist(){
   if(!list.length) box.append(h('div',{class:'empty-note',text:'아직 기록이 없어요. 글을 쓰다가 잠시 쉬면 첫 기록이 생겨요.'}));
   var vl=h('div',{class:'vlist'});
   list.forEach(function(v,i){
-    var prev=list[i+1], len=stats(v.text).inc, delta=prev?len-stats(prev.text).inc:null;
+    var prev=list[i+1], len=stats(v.text).inc, ch=prev?verChange(prev.text,v.text):null;
     vl.append(h('button',{class:'vrow'+(UI.hist===v.id?' on':''),onclick:function(){UI.hist=v.id;UI.hmode='diff';UI.hcur=null;renderHist();}},
       h('span',{class:'t1'},h('span',{text:when(v.t)}),h('span',{class:'chip',text:REASON[v.reason]||'기록'})),
       h('span',{class:'t2'},h('span',{text:NF.format(len)+'자'}),
-        delta==null?null:h('span',{class:delta>=0?'up':'dn',text:(delta>=0?'+':'')+NF.format(delta)}))));
+        !ch?h('span',{class:'vch',text:'첫 기록'}):(!ch.add&&!ch.del)?h('span',{class:'vch',text:'바뀐 글자 없음'}):
+        h('span',{class:'vch'},ch.add?h('span',{class:'v-add',text:'추가 '+NF.format(ch.add)+'자'}):null,ch.add&&ch.del?' · ':null,ch.del?h('span',{class:'v-del',text:'삭제 '+NF.format(ch.del)+'자'}):null))));
   });
   box.append(vl);
   $('#hist').classList.toggle('open',!!UI.hist);
