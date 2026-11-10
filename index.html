@@ -228,8 +228,8 @@ main{flex:1;min-height:0;position:relative}
 .ln{fill:none;stroke-width:1.6;stroke-linecap:round}
 .note{position:absolute;width:200px;border-radius:6px;color:var(--note-ink);display:flex;flex-direction:column;z-index:1}
 .note.sel{outline:2px solid var(--accent);outline-offset:2px}
-.rz{position:absolute;right:0;bottom:0;width:26px;height:26px;cursor:nwse-resize;touch-action:none;display:none;border-radius:0 0 6px 0;
-  background:linear-gradient(135deg,transparent 52%,color-mix(in srgb,var(--note-ink) 40%,transparent) 52%,color-mix(in srgb,var(--note-ink) 40%,transparent) 58%,transparent 58%,transparent 68%,color-mix(in srgb,var(--note-ink) 40%,transparent) 68%,color-mix(in srgb,var(--note-ink) 40%,transparent) 74%,transparent 74%)}
+.rz{position:absolute;right:-6px;bottom:-6px;width:30px;height:30px;cursor:nwse-resize;touch-action:none;display:none;z-index:2}
+.rz::before{content:'';position:absolute;right:8px;bottom:8px;width:12px;height:12px;border-right:3px solid var(--accent-ink);border-bottom:3px solid var(--accent-ink);border-radius:0 0 4px 0;opacity:.85}
 .note.sel .rz{display:block}
 @media (hover:hover){.note:hover .rz{display:block}}
 .cv.linking .rz,.cv.deleting .rz{display:none!important}
@@ -251,6 +251,12 @@ main{flex:1;min-height:0;position:relative}
 .cv.linking .note:not(.sel):hover{outline:2px dashed var(--accent);outline-offset:2px}
 .bd-empty{position:absolute;left:48px;top:48px;width:min(320px,70vw);color:var(--ink-2);display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 
+/* 보드 바의 휴지통: 같은 그림을 연결 아이콘과 같은 크기로 줄이고, 선 두께는 다른 아이콘과 같게 */
+.bd-bar #delNote svg{width:14.3px;height:14.3px;stroke-width:2.45}
+/* 보드 바: 이 회차/소설 공용 묶음도 다른 버튼과 같은 높이(38px) */
+.bd-bar .seg{height:38px;box-sizing:border-box}
+.bd-bar .seg button{height:100%}
+.bd-bar .zoom .zv,.bd-bar .zoom .btn.sm{font-size:14px;font-weight:500}   /* 100%·전체 보기 글자도 다른 버튼과 같게 */
 /* 공용 작은 요소: 안내 상자 · 칩 · 소제목 */
 .hd h3{font-size:16px;font-weight:600;margin-bottom:4px}
 .callout{background:var(--surface-2);border-radius:10px;padding:10px 12px;color:var(--ink-2)}
@@ -367,8 +373,8 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 .cbx.on,.cbx.mid{background:var(--accent-ink);border-color:var(--accent-ink)}
 .cbx.on:after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .cbx.mid:after{content:"";position:absolute;left:4px;top:8px;width:10px;height:2px;background:var(--surface)}
-.drawer.del .dr-foot,.drawer.del #delBtn,.drawer.del #newWork{display:none}
-.del-bar{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;font-size:13px}
+.drawer.del .dr-foot,.drawer.del #newWork,.drawer.del .doc-grip{display:none}
+.del-bar{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;font-size:13px;min-height:49px}
 .del-bar span{flex:1;min-width:0;color:var(--ink-2)}
 .del-bar[hidden]{display:none}
 .del-go{background:var(--danger);color:#FBFAF6;border-color:var(--danger)}
@@ -425,16 +431,32 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 .cf-lab{font-size:13px;margin-bottom:6px}
 .cf-pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.7 var(--f-write);max-height:22vh;overflow:auto}
 .cf-act{display:flex;flex-direction:column;gap:6px}.cf-act .btn{justify-content:center}
+
+/* 백업 */
+.bk-row{display:flex;gap:8px;flex-wrap:wrap}.bk-row .btn{flex:1;justify-content:center;min-width:140px}
+.bk-prev{display:flex;flex-direction:column;gap:8px;border:1px solid var(--accent-line);border-radius:12px;padding:12px 14px;background:var(--surface)}
+/* 집중 모드: 원고 종이만 화면 가득 */
+.fz-bar{display:none}
+body.focus .sheet{position:fixed;inset:0;z-index:35;margin:0;max-width:none;width:auto;border:0;border-radius:0;box-shadow:none}
+body.focus .wbar,body.focus .crumb{display:none}
+body.focus .sheet-scroll{padding:calc(58px + env(safe-area-inset-top,0px)) max(20px,calc((100% - 44rem)/2)) calc(40px + env(safe-area-inset-bottom,0px))}
+body.focus .fz-bar{display:flex;align-items:center;gap:8px;position:absolute;z-index:2;top:calc(8px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));
+  color:var(--ink-3);font-size:12.5px;font-variant-numeric:tabular-nums;opacity:.6;transition:opacity .2s}
+body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
+.fz-save{display:none;border:0;background:none;padding:0;height:auto}
+.fz-save[data-s="warn"]{display:inline-flex}
+.fz-x{width:36px;height:36px}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <aside class="drawer" id="drawer" aria-label="회차 목록">
-    <div class="dr-head"><h2 id="drT">내 소설</h2><div class="dr-act"><button class="btn sm" id="delBtn"><span data-ico="trash"></span>삭제</button><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
+    <div class="dr-head"><h2 id="drT">내 소설</h2><div class="dr-act"><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
     <ul class="docs" id="docList"></ul>
     <div class="del-bar" id="delBar" hidden><span id="delN" aria-live="polite"></span><button class="btn sm" id="delCancel">취소</button><button class="btn sm del-go" id="delGo" disabled>지우기</button></div>
     <div class="dr-foot dr-foot2">
       <button class="btn ghost" id="openSet"><span data-ico="gear"></span>설정</button>
+      <button class="btn ghost" id="delBtn"><span data-ico="trash"></span>삭제</button>
     </div>
   </aside>
   <div class="scrim" id="scrim" hidden></div>
@@ -457,6 +479,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
     <main>
       <section class="pane" id="pane-write" role="tabpanel" aria-labelledby="tab-write">
         <div class="sheet">
+          <div class="fz-bar" id="fzBar"><span class="save fz-save" id="fzSave" data-s="local"><i class="dot"></i></span><span class="fz-n" id="fzN"></span><button class="ib fz-x" id="focusX" aria-label="집중 모드 끝내기" title="집중 모드 끝내기 (Esc)" data-ico="shrink"></button></div>
           <div class="sheet-scroll">
           <div class="crumb" id="crumb"></div>
           <input class="ttl" id="ttl" placeholder="회차 제목" aria-label="회차 제목" autocomplete="off">
@@ -465,6 +488,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
           <div class="wbar">
             <div class="stats" id="stats"></div>
             <div class="tools">
+              <button class="ib" id="focusBtn" aria-label="집중 모드" title="집중 모드" data-ico="focus"></button>
               <button class="ib" id="undo" aria-label="실행 취소" data-ico="undo"></button>
               <button class="ib" id="redo" aria-label="다시 실행" data-ico="redo"></button>
               <button class="ib" id="fontMinus" aria-label="글자 작게">가−</button>
@@ -522,6 +546,18 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
     <section class="set-sec"><h3>휴지통</h3>
       <button class="btn set-trash" id="openTrash"><span data-ico="trash"></span><span id="trashLbl">휴지통</span><span class="set-go" data-ico="chevr"></span></button>
       <p class="muted sm" style="margin:0">지운 소설과 회차는 30일 동안 보관돼요. 여기서 복원할 수 있어요.</p>
+    </section>
+    <section class="set-sec"><h3>백업</h3>
+      <div class="bk-row"><button class="btn" id="bkOut"><span data-ico="download"></span>백업 파일 받기</button><button class="btn" id="bkIn"><span data-ico="upload"></span>백업 파일 불러오기</button></div>
+      <input type="file" id="bkFile" accept=".json,application/json" hidden>
+      <div class="bk-prev" id="bkPrev" hidden>
+        <p style="margin:0"><b>이 백업을 지금 글과 합칠까요?</b></p>
+        <p class="muted sm" id="bkInfo" style="margin:0"></p>
+        <p class="muted sm" style="margin:0">지금 글은 지워지지 않아요. 같은 회차가 서로 다르면 더 최근에 고친 글을 쓰고, 다른 쪽 글은 기록에 남겨요. 휴지통에서 완전히 지운 것도 다시 돌아와요.</p>
+        <div class="bk-row"><button class="btn accent" id="bkGo">합치기</button><button class="btn" id="bkNo">취소</button></div>
+      </div>
+      <p class="muted sm" id="bkLast" style="margin:0"></p>
+      <p class="muted sm" style="margin:0">모든 소설·회차·보드·기록이 파일 하나에 담겨요. 가끔 받아서 안전한 곳에 보관해 두세요.</p>
     </section>
     <section class="set-sec"><h3>글쓰기 글꼴</h3>
       <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -754,7 +790,7 @@ var ICONS={
   menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
-  trash:'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>',
+  trash:'<path d="M2 5h20M9 5V1h6v4M5.4 5l1.4 18h10.4L18.6 5M10 9.5v9M14 9.5v9"/>',   // 휴지통 아이콘은 이 하나만 쓴다(서랍·보드·설정 모두)
   undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   redo:'<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
   box:'<rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 3"/>',
@@ -762,6 +798,9 @@ var ICONS={
   x:'<path d="M6 6l12 12M18 6 6 18"/>',
   back:'<path d="M15 5l-7 7 7 7"/>',
   download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+  upload:'<path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>',
+  focus:'<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
+  shrink:'<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/>',
   clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   check:'<path d="M5 12l5 5 9-10"/>',
   chevd:'<path d="M6 9l6 6 6-6"/>',
@@ -1203,6 +1242,7 @@ function refreshStatus(){
   else if(syncT){s='busy';t='저장 대기 중…';}
   else{s='ok';t='드라이브 동기화됨 '+hm(Y.last||Date.now());}
   box.setAttribute('data-s',s); txt.textContent=t; box.title=tip;
+  var fz=$('#fzSave'); if(fz){fz.setAttribute('data-s',s); fz.title=t;}
   var bn=$('#reBanner');
   if(bn) bn.hidden=!(A.on&&Y.state==='reauth');
 }
@@ -1622,7 +1662,7 @@ function emptyTrash(){
 }
 function openTrash(){openDrawer(false);$('#toast').hidden=true;renderTrash();$('#trashM').hidden=false;$('#trashX').focus();}
 function closeTrash(){$('#trashM').hidden=true;}
-function openSet(){openDrawer(false);$('#toast').hidden=true;$('#setM').hidden=false;}
+function openSet(){openDrawer(false);$('#toast').hidden=true;BK=null;bkShow();backupLbl();$('#setM').hidden=false;}
 function closeSet(){$('#setM').hidden=true;}
 function renderTrash(){
   var list=$('#trashList'); list.textContent='';
@@ -1641,6 +1681,94 @@ function renderTrash(){
   });
 }
 
+/* ---------- 백업: 모든 소설·회차·보드·기록을 파일 하나로 받고, 다시 불러와 합치기 ---------- */
+var BK=null, bkUndo=null;   // BK = 불러오려고 고른 백업(확인 전), bkUndo = 가져오기 직전 상태
+function d8(t){var d=new Date(t);return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'-'+p2(d.getHours())+p2(d.getMinutes());}
+function dateKo(t){var d=new Date(t);return d.getFullYear()+'. '+(d.getMonth()+1)+'. '+d.getDate()+'. '+hm(t);}
+function backupLbl(){
+  var l=$('#bkLast'); if(!l) return;
+  var t=S&&S.prefs.lastBackup;
+  l.textContent=t?'이 기기에서 마지막으로 받은 백업: '+dateKo(t):'이 기기에서 아직 백업 파일을 받은 적이 없어요.';
+}
+function exportBackup(){
+  var now=Date.now();
+  var data={app:'plotnote',kind:'backup',schema:1,exportedAt:now,activeId:S.activeId,
+    docs:S.docs,works:S.works,boards:S.boards,versions:S.versions,tomb:S.tomb};
+  saveFile('plotnote-backup-'+d8(now)+'.json',new Blob([JSON.stringify(data)],{type:'application/json'}));
+  S.prefs.lastBackup=now; persistMeta(); backupLbl();
+}
+// 고른 파일을 읽어 내용을 확인하고, 합치기 전에 무엇이 들어 있는지 보여 준다
+function readBackup(file){
+  if(!file) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var j=null;
+    try{ j=JSON.parse(String(rd.result).replace(/^﻿/,'')); }catch(_){}
+    if(!j||j.app!=='plotnote'||!Array.isArray(j.docs)||!Array.isArray(j.works)){ BK=null; bkShow(); toast('플롯노트 백업 파일이 아니에요'); return; }
+    j.boards=(j.boards&&typeof j.boards==='object')?j.boards:{};
+    j.versions=Array.isArray(j.versions)?j.versions:[];
+    j.tomb=(j.tomb&&typeof j.tomb==='object')?j.tomb:{};
+    BK={data:j,name:file.name}; bkShow();
+  };
+  rd.onerror=function(){toast('파일을 읽지 못했어요');};
+  rd.readAsText(file);
+}
+function bkShow(){
+  var box=$('#bkPrev'); if(!box) return;
+  box.hidden=!BK; if(!BK) return;
+  var j=BK.data, ws=j.works.filter(function(w){return !w.trashed;}), ds=j.docs.filter(function(d){return !d.trashed;});
+  $('#bkInfo').textContent=(j.exportedAt?dateKo(j.exportedAt)+' 백업 · ':'')+'소설 '+ws.length+'편 · 회차 '+ds.length+'개 · 기록 '+j.versions.length+'개';
+}
+// 지금 데이터와 합친다: 같은 회차면 더 최근 글을 쓰고, 다른 쪽 글은 기록에 남긴다. 지운 적 있는 항목은 새 항목으로 되살린다.
+function importBackup(){
+  if(!BK) return;
+  var j=JSON.parse(JSON.stringify(BK.data)), now=Date.now();
+  bkUndo=JSON.stringify(S);
+  // 1) 이 기기에서 완전히 지운(삭제 표시가 남은) 항목은 새 id로 바꿔서 되살린다
+  var map={};
+  j.works.forEach(function(w){ if(S.tomb[w.id]){ map[w.id]=uid(); } });
+  j.docs.forEach(function(d){ if(S.tomb[d.id]){ map[d.id]=uid(); } });
+  function m(id){return map[id]||id;}
+  j.works.forEach(function(w){ w.id=m(w.id); if(Array.isArray(w.docOrder)) w.docOrder=w.docOrder.map(m); });
+  j.docs.forEach(function(d){ d.id=m(d.id); d.workId=m(d.workId); });
+  var nb={}; Object.keys(j.boards).forEach(function(k){ nb[m(k)]=j.boards[k]; }); j.boards=nb;
+  j.versions.forEach(function(v){ v.docId=m(v.docId); if(S.tomb[v.id]) v.id=uid(); });
+  // 2) 합치기 (첫 실행 예시만 있는 상태라면 예시는 버린다)
+  var mm=mergeCore(S,{docs:j.docs,works:j.works,boards:j.boards,tomb:{}},{dropLocal:!!S.fresh});
+  S.docs=mm.docs; S.works=mm.works; S.boards=mm.boards; S.tomb=mm.tomb;
+  S.versions=mergeHist(S.versions,j.versions,S.tomb);
+  (mm.conf||[]).forEach(function(c){
+    var L=c.loser;
+    if(S.versions.some(function(x){return x.docId===L.id&&x.text===L.text;})) return;
+    S.versions.push({id:uid(),docId:L.id,t:L.updated||now,title:L.title,text:L.text,reason:c.mine?'before-import':'import'});
+  });
+  S.fresh=false;
+  if(!cur()){   // 보던 회차가 없어졌으면(새 기기) 백업에서 보던 회차로
+    var ba=m(j.activeId||''), bd=S.docs.find(function(d){return d.id===ba&&isLive(d);});
+    var lw=liveWorks()[0], first=bd||(lw&&workDocs(lw.id)[0])||liveDocs()[0];
+    if(first) S.activeId=first.id;
+  }
+  migrated=false; S=normalize(S);
+  markDirty(); saveLSNow();
+  BK=null; bkShow(); var inp=$('#bkFile'); if(inp) inp.value='';
+  resetDocUi(); loadEditor(); renderDrawer(); updateTrashLbl(); setTab(S.prefs.tab||'write');
+  toast('백업을 합쳤어요','되돌리기',undoImport);
+}
+function undoImport(){
+  if(!bkUndo) return;
+  var prev=JSON.parse(bkUndo); bkUndo=null;
+  // 되돌릴 때도 동기화가 이전 상태를 이기도록 시각을 새로 매긴다
+  var now=Date.now(), keep={};
+  prev.docs.forEach(function(d){keep[d.id]=1;}); prev.works.forEach(function(w){keep[w.id]=1;});
+  S.docs.forEach(function(d){ if(!keep[d.id]) prev.tomb[d.id]=now; });
+  S.works.forEach(function(w){ if(!keep[w.id]) prev.tomb[w.id]=now; });
+  prev.docs.forEach(function(d){ var c=S.docs.find(function(x){return x.id===d.id;}); if(c&&(c.text!==d.text||c.title!==d.title||!!c.trashed!==!!d.trashed)) d.updated=now; });
+  prev.works.forEach(function(w){ var c=S.works.find(function(x){return x.id===w.id;}); if(c&&JSON.stringify(c)!==JSON.stringify(w)) w.updated=now; });
+  Object.keys(prev.boards||{}).forEach(function(k){ if(JSON.stringify(S.boards[k])!==JSON.stringify(prev.boards[k])) prev.boards[k].updated=now; });
+  S=normalize(prev); markDirty(); saveLSNow();
+  resetDocUi(); loadEditor(); renderDrawer(); updateTrashLbl(); setTab(S.prefs.tab||'write');
+  toast('가져오기 전으로 되돌렸어요');
+}
 /* ---------- 쓰기 ---------- */
 var ed, ttl;
 function loadEditor(){
@@ -1745,6 +1873,7 @@ function updateStats(){
   fitEd();
   var st=stats(ed.value);
   $('#stats').innerHTML='<b>'+NF.format(st.inc)+'자</b> · 공백 제외 '+NF.format(st.exc)+' · 원고지 '+st.pages.toFixed(1)+'매';
+  var fn=$('#fzN'); if(fn) fn.textContent=NF.format(st.inc)+'자';
 }
 var verTimer=0, SNAP_IDLE=20e3, SNAP_GAP=60e3, SNAP_TYPING=3*60e3;
 // 글이 바뀔 때마다 부른다. 잠깐 멈추면(20초) 기록하고, 계속 쓰는 중이면 3분마다 기록한다.
@@ -1790,6 +1919,42 @@ function manualSnap(){
   else toast('기록에 남겼어요 · '+hm(Date.now()));
 }
 
+/* ---------- 집중 모드: 원고 종이만 화면 가득 (다시 열면 원래 화면으로 시작) ---------- */
+var focusFs=false;   // 집중 모드가 브라우저 전체 화면까지 켰는지
+function isFocus(){return document.body.classList.contains('focus');}
+function setFocus(on){
+  if(on===isFocus()) return;
+  if(on){
+    setTab('write'); openDrawer(false);
+    document.body.classList.add('focus');
+    var el=document.documentElement;
+    if(el.requestFullscreen&&!document.fullscreenElement){   // 컴퓨터·안드로이드: 브라우저 전체 화면 (아이폰 사파리는 지원 안 함)
+      try{ el.requestFullscreen().then(function(){focusFs=true;}).catch(function(){}); }catch(_){}
+    }
+  } else {
+    document.body.classList.remove('focus');
+    if(focusFs&&document.fullscreenElement){ try{document.exitFullscreen().catch(function(){});}catch(_){} }
+    focusFs=false;
+  }
+  fitEd();
+}
+function bindFocus(){
+  ['focusBtn','focusX'].forEach(function(id){
+    var b=$('#'+id);
+    b.addEventListener('pointerdown',function(ev){ev.preventDefault();});   // 글칸 포커스를 그대로 두어 키보드가 오르내리지 않게
+    b.addEventListener('mousedown',function(ev){ev.preventDefault();});
+  });
+  $('#focusBtn').addEventListener('click',function(){setFocus(true);});
+  $('#focusX').addEventListener('click',function(){setFocus(false);});
+  document.addEventListener('keydown',function(ev){
+    if(ev.key!=='Escape'||!isFocus()||ev.defaultPrevented) return;
+    if($$('.modal').some(function(m){return !m.hidden;})) return;   // 창이 열려 있으면 그 창부터 닫히게
+    setFocus(false);
+  });
+  document.addEventListener('fullscreenchange',function(){   // 전체 화면을 브라우저 쪽에서(Esc 등) 끄면 집중 모드도 같이 끈다
+    if(!document.fullscreenElement&&focusFs&&isFocus()){ focusFs=false; setFocus(false); }
+  });
+}
 /* ---------- 보드 ---------- */
 var bd, cv, svg, sizer;
 function noteById(id){return curBoard().notes.find(function(n){return n.id===id;});}
@@ -1964,7 +2129,7 @@ function syncBoardBar(){
   $$('.note',cv).forEach(function(x){x.classList.toggle('msel',!!(UI.msel&&UI.msel[x.getAttribute('data-id')]));});
   var mn=UI.msel?Object.keys(UI.msel).length:0;
   $('#boxBtn').setAttribute('aria-pressed',UI.box?'true':'false');
-  var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'지울 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌어서 옮겨요.':'포스트잇을 탭해서 고르세요.';
+  var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'지울 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀌어요.':'포스트잇을 탭해서 고르세요.';
   var lbl=S.prefs.scope==='work'?'「'+curWork().title+'」 소설 공용 보드':'「'+(cur().title||'제목 없음')+'」 회차 보드';
   $('#bdHint').textContent=lbl+' · '+tail;
 }
@@ -2017,7 +2182,7 @@ function bdelGo(){
 }
 
 /* ---------- 기록 ---------- */
-var REASON={auto:'자동 기록',manual:'직접 기록','before-restore':'되돌리기 직전','before-spell':'맞춤법 적용 직전',sync:'동기화 때 덮인 글'};
+var REASON={auto:'자동 기록',manual:'직접 기록','before-restore':'되돌리기 직전','before-spell':'맞춤법 적용 직전',sync:'동기화 때 덮인 글',import:'백업에서 가져온 글','before-import':'백업 가져오기 전 글'};
 function renderHist(){
   var d=cur(); if(!d) return;
   var list=S.versions.filter(function(v){return v.docId===d.id;}).sort(function(a,b){return b.t-a.t;});
@@ -2286,6 +2451,12 @@ function bindOnce(){
   $('#openTrash').addEventListener('click',openTrash);
   $('#openSet').addEventListener('click',openSet);
   $('#addGuide').addEventListener('click',addGuide);
+  bindFocus();
+  $('#bkOut').addEventListener('click',exportBackup);
+  $('#bkIn').addEventListener('click',function(){$('#bkFile').click();});
+  $('#bkFile').addEventListener('change',function(){readBackup(this.files&&this.files[0]);});
+  $('#bkGo').addEventListener('click',importBackup);
+  $('#bkNo').addEventListener('click',function(){BK=null;bkShow();$('#bkFile').value='';});
   $('#setX').addEventListener('click',closeSet);
   $('#trashX').addEventListener('click',closeTrash);
   $('#trashM').addEventListener('click',function(ev){if(ev.target===$('#trashM'))closeTrash();});
