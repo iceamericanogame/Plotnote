@@ -1329,6 +1329,21 @@ function flushSync(){ if(A.on&&Date.now()<=A.exp&&navigator.onLine&&(syncT||hist
 function keepRemoteOnLogin(rc){
   var rd={}, rw={};
   (rc.docs||[]).forEach(function(d){rd[d.id]=d;}); (rc.works||[]).forEach(function(w){rw[w.id]=w;});
+  // 이 기기에서 저절로 생긴 사용 안내(손대지 않은 예시 원고만 든 소설)는 계정 글이 있으면 합치지 않는다
+  if((rc.docs||[]).some(function(d){return !d.trashed;})){
+    var SEEDS=[SEED_TEXT,SEED_TEXT2,SEED_TEXT3], drop={};
+    S.works.forEach(function(w){
+      if(rw[w.id]) return;
+      var ds=S.docs.filter(function(d){return d.workId===w.id;});
+      if(ds.length&&ds.every(function(d){return d.example&&!rd[d.id]&&SEEDS.indexOf(d.text)>=0;})) drop[w.id]=1;
+    });
+    if(Object.keys(drop).length){
+      S.docs=S.docs.filter(function(d){ if(drop[d.workId]){ if(S.boards) delete S.boards[d.id]; return false; } return true; });
+      S.works=S.works.filter(function(w){return !drop[w.id];});
+      Object.keys(drop).forEach(function(id){ if(S.boards) delete S.boards[id]; });
+      if(!S.docs.some(function(d){return d.id===S.activeId;})){ var f=(rc.docs||[]).filter(function(d){return !d.trashed;})[0]; if(f) S.activeId=f.id; }
+    }
+  }
   Object.keys(S.tomb||{}).forEach(function(id){ if(rd[id]||rw[id]) delete S.tomb[id]; });
   S.docs=S.docs.filter(function(d){ var r=rd[d.id]; return !(r&&d.trashed&&!r.trashed); });
   S.works=S.works.filter(function(w){ var r=rw[w.id]; return !(r&&w.trashed&&!r.trashed); });
@@ -1781,6 +1796,8 @@ function renderDrawer(){
     else if(E){
       main=h('div',{class:'wk-main rn-t'},
         h('span',{class:'wk-tx'},h('span',{class:'wk-t',text:w.title||'제목 없음'}),h('span',{class:'wk-m',text:workMeta(w)})));
+    } else if(!DEL.on&&RN&&RN.kind==='w'&&RN.id===w.id){
+      main=rnInput('w',w);
     } else {
       main=h('button',{class:'wk-main','aria-expanded':coll?'false':'true',onclick:toggle},
         ico(coll?'chevr':'chevd'),
@@ -1860,7 +1877,7 @@ function addDoc(workId){
 function addWork(){
   var w=newWorkObj('새 소설 '+(liveWorks().length+1)); S.works.push(w); persistWork(w);
   var d=newDoc('1화 ',w.id); S.docs.push(d); S.activeId=d.id; persistDoc(d); persistMeta();
-  resetDocUi(); loadEditor(); editingWork=w.id; renderDrawer(); setTab('write');
+  resetDocUi(); loadEditor(); RN={kind:'w',id:w.id}; renderDrawer(); setTab('write');   // 새 소설은 바로 이름을 고칠 수 있게
 }
 var TRASH_DAYS=30;
 function showDoc(d){S.activeId=d.id;resetDocUi();loadEditor();}
