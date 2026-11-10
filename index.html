@@ -463,6 +463,13 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .h-nav .h-pos{margin-right:auto;font-size:13px;color:var(--ink-2)}
 .h-nav .h-pos b{color:var(--ink)}
 .h-nav .btn{padding:0 12px}
+/* 한 문장 안에 표시: 지운 글 = 빨강 + 취소선, 추가된 글 = 파랑 */
+.diff del,.legend del,.diff .dl.del mark{background:color-mix(in srgb,#D9604A 20%,transparent);color:color-mix(in srgb,var(--ink) 78%,transparent);text-decoration:line-through;text-decoration-thickness:1px;text-decoration-color:color-mix(in srgb,var(--danger) 70%,transparent);border-radius:2px}
+.diff ins,.legend ins{background:color-mix(in srgb,#4F8FDB 26%,transparent);text-decoration:none;color:inherit;border-radius:2px}
+.legend del,.legend ins{padding:0 4px}
+.diff .empty{font:12px var(--f-ui);color:var(--ink-2)}
+.dl.inl .sg{color:var(--ink-3)}.dl.inl .sg.del{color:#C0543F}.dl.inl .sg.add{color:#3F7FCB}
+.cblk{border-radius:8px}
 </style>
 </head>
 <body>
@@ -2247,7 +2254,7 @@ function renderHistDetail(list){
     var res=renderDiff(ops,bk); sc=res.box;
     if(!res.changed) box.append(h('div',{class:'callout',text:'지금 글과 같은 내용이에요.'}));
     else box.append(
-      h('div',{class:'legend'},h('span',null,h('i',{class:'lg-del'}),'삭제된 글'),h('span',null,h('i',{class:'lg-add'}),'추가된 글')),
+      h('div',{class:'legend'},h('span',null,h('del',{class:'lg-d',text:'지운 글'})),h('span',null,h('ins',{class:'lg-a',text:'추가된 글'}))),
       hNav(bk.n), res.box);
   }
   if(bk.n&&UI.hcur!=null) requestAnimationFrame(function(){hGo(Math.min(UI.hcur,bk.n-1),true);});
@@ -2413,11 +2420,100 @@ function rowEl(kind,sign,s,other){
   else{var mk=charMarks(s,other); if(!mk.some(Boolean)) return null; kids=marksToNodes(s,mk);}
   return h('div',{class:'dl '+kind},h('span',{class:'sg',text:sign}),h('span',{class:'tx'},kids));
 }
+/* 한 문장 안에서 바뀐 곳 보여 주기: 같은 낱말은 그대로, 지운 글은 빨강+취소선, 추가된 글은 파랑 */
+function inlineNodes(a,b){
+  // 낱말(붙은 문장부호 포함) 단위로 맞춘다. 띄어쓰기만 같은 걸로는 맞추지 않아서 바뀐 구절이 한 덩어리로 보인다.
+  function tok(s){ return s.match(/\s+|\S+\s*/g)||[]; }
+  var ta=tok(a), tb=tok(b), ka=ta.map(function(x){return x.trim();}), kb=tb.map(function(x){return x.trim();});
+  var r=wLcs(ka,kb); if(!r) return null;
+  var out=[], chg=0, i=0, j=0, n=ta.length, m=tb.length;
+  function last(){ return out.length?out[out.length-1]:null; }
+  function eq(s){ if(!s) return; var l=last(); if(l&&l.k==='e') l.s+=s; else out.push({k:'e',s:s}); }
+  function sp(){ var l=last(); if(l&&!/\s$/.test(l.s)) eq(' '); }
+  function seg(da,db){
+    var x=da.trim(), y=db.trim();
+    if(!x&&!y){ eq(db); return; }
+    chg+=x.replace(/\s/g,'').length+y.replace(/\s/g,'').length;
+    if(x&&y&&!/\s/.test(x)&&!/\s/.test(y)){   // 낱말 하나 → 낱말 하나: 그 안에서 바뀐 글자만 (삭제하기 → 삭제)
+      var p=0,q=0;
+      while(p<x.length&&p<y.length&&x[p]===y[p]) p++;
+      while(q<x.length-p&&q<y.length-p&&x[x.length-1-q]===y[y.length-1-q]) q++;
+      chg-=p*2+q*2;
+      sp(); eq(y.slice(0,p));
+      if(x.length-q>p) out.push({k:'d',s:x.slice(p,x.length-q)});
+      if(y.length-q>p) out.push({k:'a',s:y.slice(p,y.length-q)});
+      eq(y.slice(y.length-q)); eq(/\s$/.test(db)?' ':'');
+      return;
+    }
+    sp();   // 여러 낱말이 바뀌면 구절 통째로: 지운 구절 → 추가된 구절
+    if(x) out.push({k:'d',s:x});
+    if(x&&y) eq(' ');
+    if(y) out.push({k:'a',s:y});
+    if(/\s$/.test(db)||(!y&&/\s$/.test(da))) eq(' ');
+  }
+  while(i<n||j<m){
+    if(i<n&&j<m&&r.ma[i]&&r.mb[j]){ eq(tb[j]); i++; j++; continue; }
+    var da='', db='';
+    while(i<n&&!r.ma[i]){ da+=ta[i]; i++; }
+    while(j<m&&!r.mb[j]){ db+=tb[j]; j++; }
+    if(!da&&!db){ if(i<n){eq(ta[i]);i++;} else if(j<m){eq(tb[j]);j++;} continue; }
+    seg(da,db);
+  }
+  var l=last(); if(l&&l.k==='e') l.s=l.s.replace(/\s+$/,'');
+  var tot=a.replace(/\s/g,'').length+b.replace(/\s/g,'').length;
+  return {parts:out, ratio:tot?chg/tot:0, same:chg<=0};
+}
+function partsEl(parts){
+  return parts.map(function(p){
+    if(p.k==='e') return document.createTextNode(p.s);
+    var e=document.createElement(p.k==='d'?'del':'ins'); e.textContent=p.s; return e;
+  });
+}
+function lineRow(kind,s){   // 줄 전체가 지워졌거나 새로 생긴 경우
+  var e=document.createElement(kind==='del'?'del':'ins'); e.textContent=s||'(빈 줄)'; if(!s) e.className='empty';
+  return h('div',{class:'dl inl'},h('span',{class:'sg '+kind,text:kind==='del'?'−':'+'}),h('span',{class:'tx'},e));
+}
+function pairIdx(dels,adds){
+  var dI=new Array(dels.length), j=0, i, k;
+  if(dels.length*adds.length>2500){ for(i=0;i<Math.min(dels.length,adds.length);i++) dI[i]=i; return dI; }
+  for(i=0;i<dels.length;i++){
+    var best=-1,bs=0.35;
+    for(k=j;k<adds.length;k++){var sc=wSim(dels[i],adds[k]); if(sc>bs){bs=sc;best=k;}}
+    if(best>=0){dI[i]=best;j=best+1;}
+  }
+  return dI;
+}
+/* 바뀐 곳 하나(연속으로 달라진 줄 묶음)를 줄들로 그리기 */
+function blockRows(dels,adds){
+  var rows=[];
+  if(dels.length&&adds.length&&dels.length!==adds.length){   // 문단을 합치거나 나눈 경우: 덩어리 전체 비교(줄바꿈 ↵ 표시)
+    var bm=blockMarks(dels,adds);
+    if(bm){
+      dels.forEach(function(s,x){var e=rowMarked('del','−',s,bm.dm[x],bm.dn[x]);if(e)rows.push(e);});
+      adds.forEach(function(s,x){var e=rowMarked('add','+',s,bm.am[x],bm.an[x]);if(e)rows.push(e);});
+      if(rows.length) return rows;
+    }
+  }
+  var dI=pairIdx(dels,adds), ya=0;
+  dels.forEach(function(a,x){
+    var y=dI[x];
+    if(y==null){ rows.push(lineRow('del',a)); return; }
+    while(ya<y){ rows.push(lineRow('add',adds[ya])); ya++; }
+    var b=adds[y], r=inlineNodes(a,b); ya=y+1;
+    if(r&&r.same) return;
+    if(r&&r.ratio<=0.5) rows.push(h('div',{class:'dl inl'},h('span',{class:'sg',text:'±'}),h('span',{class:'tx'},partsEl(r.parts))));
+    else {   // 문단을 거의 새로 썼으면 예전 문단과 지금 문단을 나눠서
+      var e1=rowEl('del','−',a,b), e2=rowEl('add','+',b,a);
+      if(e1) rows.push(e1); if(e2) rows.push(e2);
+    }
+  });
+  while(ya<adds.length){ rows.push(lineRow('add',adds[ya])); ya++; }
+  return rows;
+}
 function renderDiff(ops,bk){
   bk=bk||diffBlocks(ops);
-  function tag(e,k){ if(e&&bk.of[k]>=0) e.setAttribute('data-blk',bk.of[k]); return e; }
   var box=h('div',{class:'diff'}), n=ops.length, keep=new Array(n).fill(false), i, changed=false;
-  ops.forEach(function(o,k){if(o.t!=='='){changed=true;for(var j=k-1;j<=k+1;j++)if(j>=0&&j<n)keep[j]=true;}});
+  ops.forEach(function(o,k){ if(o.t!=='='){changed=true;for(var j=k-1;j<=k+1;j++)if(j>=0&&j<n)keep[j]=true;} });
   i=0;
   while(i<n){
     if(!keep[i]){
@@ -2426,24 +2522,16 @@ function renderDiff(ops,bk){
       else box.append(h('div',{class:'dl gap',text:'… 변경 없는 '+(j-i)+'줄'}));
       i=j; continue;
     }
-    var o=ops[i];
-    if(o.t==='-'){
-      var k=i, dels=[], adds=[];
-      while(k<n&&ops[k].t==='-'){dels.push(ops[k].s);k++;}
-      while(k<n&&ops[k].t==='+'){adds.push(ops[k].s);k++;}
-      var bm=blockMarks(dels,adds);
-      if(bm){
-        dels.forEach(function(s,x){var e=tag(rowMarked('del','−',s,bm.dm[x],bm.dn[x]),i);if(e)box.append(e);});
-        adds.forEach(function(s,x){var e=tag(rowMarked('add','+',s,bm.am[x],bm.an[x]),i);if(e)box.append(e);});
-      } else {
-      var pr=pairLines(dels,adds);
-      dels.forEach(function(s,x){var e=tag(rowEl('del','−',s,pr.dO[x]),i);if(e)box.append(e);});
-      adds.forEach(function(s,x){var e=tag(rowEl('add','+',s,pr.aO[x]),i);if(e)box.append(e);});
-      }
-      i=k; continue;
+    if(ops[i].t==='='){ box.append(rowEl('eq','',ops[i].s)); i++; continue; }
+    var k=i, dels=[], adds=[];
+    while(k<n&&ops[k].t!=='='){ (ops[k].t==='-'?dels:adds).push(ops[k].s); k++; }
+    var rows=blockRows(dels,adds);
+    if(rows.length){
+      var bx=h('div',{class:'cblk','data-blk':bk.of[i]});
+      rows.forEach(function(r){bx.append(r);});
+      box.append(bx);
     }
-    if(o.t==='+') box.append(tag(rowEl('add','+',o.s),i)); else box.append(rowEl('eq','',o.s));
-    i++;
+    i=k;
   }
   return {box:box,changed:changed};
 }
