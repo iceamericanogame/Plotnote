@@ -845,7 +845,9 @@ var UI={sel:null,linking:false,hist:null,hmode:'diff'};
 var editingWork=null, migrated=false;
 
 var SEED_TEXT="지금 보고 있는 이 칸이 원고예요. 여기에 그냥 이어서 쓰면 돼요. 저장 버튼은 없어요. 쓰는 대로 저절로 저장돼요.\n\n왼쪽 위의 ☰ 버튼을 누르면 내 소설 목록이 열려요. 소설 안에 회차를 하나씩 쌓아 가는 구조예요. 소설을 새로 만들 때는 \"새 소설\"을, 회차를 더할 때는 소설 옆의 +를 누르면 돼요.\n\n위쪽에는 탭이 세 개 있어요.\n\n쓰기는 지금 이 화면이에요. 보드는 이야기를 정리하는 곳이고, 기록은 지난 글을 다시 꺼내 보는 곳이에요.\n\n이 글은 지우고 싶을 때 지워도 괜찮아요. 처음부터 마음 편히 시작하세요.\n\n자, 이제 플롯노트에서 첫 문장을 시작해 볼까요?";
-var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래의 \"기록 남기기\"를 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n소설이나 회차 옆의 ⬇ 버튼을 누르면 txt나 epub 파일로 받을 수 있어요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 글이 내 구글 드라이브에 저장돼요. 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 아이폰이나 아이패드에서는 공유 버튼에서 \"홈 화면에 추가\"를 누르면 앱처럼 쓸 수 있어요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.";
+var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래의 \"기록 남기기\"를 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n소설이나 회차 옆의 ⬇ 버튼을 누르면 txt나 epub 파일로 받을 수 있어요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
+
+var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기에서 다르게 고쳤다면 어느 쪽 글을 쓸지 물어봐요. 고르지 않은 글도 기록에 남아요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
 
 function newDoc(title,workId){var now=Date.now();return {id:uid(),workId:workId,title:title||'',text:'',created:now,updated:now};}
 function newWorkObj(title,id){var now=Date.now();return {id:id||uid(),title:title,created:now,updated:now};}
@@ -855,7 +857,8 @@ function seed(){
     fresh:true, tomb:{},
     works:[{id:wid,title:'플롯노트 안내',created:now,updated:now}],
     docs:[{id:id,workId:wid,title:'1화 플롯노트에 오신 걸 환영해요',text:SEED_TEXT,created:now,updated:now,example:true},
-      {id:uid(),workId:wid,title:'2화 이렇게 써 보세요',text:SEED_TEXT2,created:now,updated:now,example:true}],
+      {id:uid(),workId:wid,title:'2화 이렇게 써 보세요',text:SEED_TEXT2,created:now+1,updated:now,example:true},
+      {id:uid(),workId:wid,title:'3화 구글로 여러 기기에서 쓰기',text:SEED_TEXT3,created:now+2,updated:now,example:true}],
     activeId:id,
     boards:{[id]:{updated:now,notes:[
       {id:ids[0],x:60,y:60,c:0,t:'보드는 생각 정리 공간\n쓰다가 떠오른 설정이나 대사를 바로 메모해 두세요.'},
@@ -1474,7 +1477,7 @@ function exportItem(kind,id,fmt){
 function addGuide(){
   var g=seed(), wk=g.works[0], oldId=wk.id, nid=uid(), now=Date.now();
   wk.id=nid; wk.created=now; wk.updated=now; S.works.push(wk); persistWork(wk);
-  g.docs.forEach(function(d){d.workId=nid; d.created=now; d.updated=now; S.docs.push(d); persistDoc(d);});
+  g.docs.forEach(function(d,i){d.workId=nid; d.created=now+i; d.updated=now; S.docs.push(d); persistDoc(d);});
   Object.keys(g.boards).forEach(function(k){
     var key=(k===oldId)?nid:k, b=g.boards[k]; b.updated=now; S.boards[key]=b;
     if(typeof dbPut==='function') dbPut('b_'+key,boardBody(b),200);
