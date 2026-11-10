@@ -172,6 +172,9 @@ h2,h3,p{margin:0}
 .t-act{display:flex;gap:6px;flex-wrap:wrap}
 .dr-foot{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
 
+/* 글자 수 줄은 항상 한 줄: 넘치면 … */
+.wk-tx{min-width:0}
+.wk-m,.doc-m{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 버튼 */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:500;white-space:nowrap}
 .btn:disabled{opacity:.45;cursor:default}
@@ -483,6 +486,34 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .diff .dl{padding:0 16px}
 .diff .sg{display:none}
 .diff .nl{font:12px var(--f-ui);padding:0 2px}
+/* 통일 규칙 (2026-11-10)
+   - 버튼은 38px(서랍만 34px), 글자 14px(서랍 12.5px)
+   - 닫기: 오른쪽 위 ✕ / 뒤로: 왼쪽 위 ‹ (아이콘 버튼)
+   - 삭제 모드로 들어가는 버튼은 보통 색, 실제로 지울 때만 빨강 */
+.btn.sm{min-height:38px;padding:0 12px;font-size:14px}
+
+/* 서랍: 글자가 작으니 버튼도 34px */
+.drawer .btn,.drawer .btn.sm{min-height:34px;height:34px;padding:0 10px;font-size:12.5px;box-sizing:border-box}
+.drawer .btn .ic{width:16px;height:16px}
+.drawer .del-bar .btn{min-width:56px}
+/* 서랍 아이콘 버튼: 작고 가볍게 */
+.wk-btn,.doc-del{min-width:28px;width:28px;height:28px;padding:0;border-radius:7px}
+.wk-btn .ic,.doc-del .ic{width:16px;height:16px}
+.wk{gap:0}
+
+/* 뒤로·닫기 아이콘 버튼 */
+#setX,#trashX,#dlX,#acctX,#hDetail .back{min-width:38px;width:38px;height:38px;padding:0}
+#setX .ic,#trashX .ic,#dlX .ic,#acctX .ic,#hDetail .back .ic{width:18px;height:18px}
+
+/* 기록 상세: 보기 전환 줄과 동작 줄을 나눔 */
+#hDetail .h-act{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+#hDetail .h-act .btn{font-size:14px}
+#hDetail .h-act .btn .ic{width:16px;height:16px}
+
+/* 화면 테마 버튼 높이를 다른 버튼과 같게 */
+#themeSeg{height:38px;box-sizing:border-box}
+#themeSeg button{height:100%;padding-top:0;padding-bottom:0}
+.del-bar{min-height:45px}
 </style>
 </head>
 <body>
@@ -490,7 +521,7 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
   <aside class="drawer" id="drawer" aria-label="회차 목록">
     <div class="dr-head"><h2 id="drT">내 소설</h2><div class="dr-act"><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
     <ul class="docs" id="docList"></ul>
-    <div class="del-bar" id="delBar" hidden><span id="delN" aria-live="polite"></span><button class="btn sm" id="delCancel">취소</button><button class="btn sm del-go" id="delGo" disabled>지우기</button></div>
+    <div class="del-bar" id="delBar" hidden><span id="delN" aria-live="polite"></span><button class="btn sm" id="delCancel">취소</button><button class="btn sm del-go" id="delGo" disabled>삭제</button></div>
     <div class="dr-foot dr-foot2">
       <button class="btn ghost" id="openSet"><span data-ico="gear"></span>설정</button>
       <button class="btn ghost" id="delBtn"><span data-ico="trash"></span>삭제</button>
@@ -542,7 +573,7 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
           <button class="btn accent" id="addNote"><span data-ico="plus"></span>포스트잇</button>
           <div class="sw" id="sw" role="group" aria-label="포스트잇 색"></div>
           <button class="btn" id="boxBtn" aria-pressed="false"><span data-ico="box"></span>범위 선택</button><button class="btn" id="linkBtn" aria-pressed="false"><span data-ico="link"></span><span id="linkLbl">연결</span></button>
-          <button class="btn danger-o" id="delNote"><span data-ico="trash"></span><span id="delLbl">삭제</span></button><button class="btn" id="delCancelB" hidden>취소</button>
+          <button class="btn" id="delNote"><span data-ico="trash"></span><span id="delLbl">삭제</span></button><button class="btn" id="delCancelB" hidden>취소</button>
           <div class="seg" id="scope" role="group" aria-label="보드 범위"><button data-scope="doc" aria-pressed="true">이 회차</button><button data-scope="work" aria-pressed="false">소설 공용</button></div>
           <div class="zoom" role="group" aria-label="확대 축소"><button class="ib" id="zOut" aria-label="축소">−</button><button class="ib zv" id="zVal" aria-label="100%로 되돌리기">100%</button><button class="ib" id="zIn" aria-label="확대">+</button><button class="btn sm" id="zFit">전체 보기</button></div>
           <span class="hint" id="bdHint"></span>
@@ -572,17 +603,21 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="modal" id="dlM" role="dialog" aria-modal="true" aria-labelledby="dlT" hidden>
   <div class="modal-panel">
-    <div class="m-head"><h2 id="dlT">받기</h2><button class="btn sm" id="dlX">닫기</button></div>
+    <div class="m-head"><h2 id="dlT">받기</h2><button class="ib" id="dlX" aria-label="닫기" data-ico="x"></button></div>
     <button class="dl-opt" id="dlTxt"><b>txt</b><small id="dlTxtD"></small></button>
     <button class="dl-opt" id="dlEpub"><b>epub</b><small id="dlEpubD"></small></button>
   </div>
 </div>
 <div class="modal" id="setM" role="dialog" aria-modal="true" aria-labelledby="setT" hidden>
   <div class="modal-panel">
-    <div class="m-head"><button class="btn" id="setX" aria-label="설정 닫기"><span data-ico="back"></span>돌아가기</button><h2 id="setT">설정</h2><span></span></div>
-    <section class="set-sec"><h3>휴지통</h3>
-      <button class="btn set-trash" id="openTrash"><span data-ico="trash"></span><span id="trashLbl">휴지통</span><span class="set-go" data-ico="chevr"></span></button>
-      <p class="muted sm" style="margin:0">지운 소설과 회차는 30일 동안 보관돼요. 여기서 복원할 수 있어요.</p>
+    <div class="m-head"><button class="ib" id="setX" aria-label="설정 닫기" title="돌아가기" data-ico="back"></button><h2 id="setT">설정</h2><span></span></div>
+    <section class="set-sec"><h3>화면 테마</h3>
+      <div class="seg set-seg" id="themeSeg" role="group" aria-label="화면 테마"><button data-theme-set="light" aria-pressed="false">라이트</button><button data-theme-set="dark" aria-pressed="false">다크</button><button data-theme-set="system" aria-pressed="true">시스템</button></div>
+    </section>
+    <section class="set-sec"><h3>글쓰기 글꼴</h3>
+      <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="fpv" id="fontPv">가을 저녁, 서점 창가에 달빛이 내려앉았다. 문을 밀자 오래된 종이 냄새가 났다.</div>
+      <p class="muted sm" style="margin:0">글쓰기 화면의 본문과 제목에 적용돼요. 글쓰기 화면 아래 툴바의 글꼴 버튼으로도 바꿀 수 있어요. 이 기기에 저장돼요.</p>
     </section>
     <section class="set-sec"><h3>백업</h3>
       <div class="bk-row"><button class="btn" id="bkOut"><span data-ico="download"></span>백업 파일 받기</button><button class="btn" id="bkIn"><span data-ico="upload"></span>백업 파일 불러오기</button></div>
@@ -596,23 +631,19 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
       <p class="muted sm" id="bkLast" style="margin:0"></p>
       <p class="muted sm" style="margin:0">모든 소설·회차·보드·기록이 파일 하나에 담겨요. 가끔 받아서 안전한 곳에 보관해 두세요.</p>
     </section>
-    <section class="set-sec"><h3>글쓰기 글꼴</h3>
-      <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="fpv" id="fontPv">가을 저녁, 서점 창가에 달빛이 내려앉았다. 문을 밀자 오래된 종이 냄새가 났다.</div>
-      <p class="muted sm" style="margin:0">글쓰기 화면의 본문과 제목에 적용돼요. 글쓰기 화면 아래 툴바의 글꼴 버튼으로도 바꿀 수 있어요. 이 기기에 저장돼요.</p>
+    <section class="set-sec"><h3>휴지통</h3>
+      <button class="btn set-trash" id="openTrash"><span data-ico="trash"></span><span id="trashLbl">휴지통</span><span class="set-go" data-ico="chevr"></span></button>
+      <p class="muted sm" style="margin:0">지운 소설과 회차는 30일 동안 보관돼요. 여기서 복원할 수 있어요.</p>
     </section>
     <section class="set-sec"><h3>사용 안내</h3>
       <button class="btn set-trash" id="addGuide"><span data-ico="plus"></span>사용 안내 소설 추가</button>
       <p class="muted sm" style="margin:0">플롯노트 소개와 사용법을 담은 "플롯노트 안내" 소설을 내 소설 목록에 더해요. 필요 없으면 삭제해도 돼요.</p>
     </section>
-    <section class="set-sec"><h3>화면 테마</h3>
-      <div class="seg set-seg" id="themeSeg" role="group" aria-label="화면 테마"><button data-theme-set="light" aria-pressed="false">라이트</button><button data-theme-set="dark" aria-pressed="false">다크</button><button data-theme-set="system" aria-pressed="true">시스템</button></div>
-    </section>
-  </div>
+</div>
 </div>
 <div class="modal" id="trashM" role="dialog" aria-modal="true" aria-labelledby="trashT" hidden>
   <div class="modal-panel">
-    <div class="m-head"><button class="btn" id="trashX" aria-label="휴지통 닫기"><span data-ico="back"></span>돌아가기</button><h2 id="trashT">휴지통</h2><button class="btn danger-o" id="trashEmpty">휴지통 비우기</button></div>
+    <div class="m-head"><button class="ib" id="trashX" aria-label="휴지통 닫기" title="돌아가기" data-ico="back"></button><h2 id="trashT">휴지통</h2><button class="btn" id="trashEmpty">휴지통 비우기</button></div>
     <p class="muted" id="trashNote">지운 소설과 회차는 30일 동안 보관하고, 그 뒤에는 자동으로 완전히 지워져요. 복원하면 기록과 보드도 함께 돌아와요.</p>
     <div class="m-list" id="trashList"></div>
   </div>
@@ -927,7 +958,7 @@ function workDocs(id){
   return ds;
 }
 function workChars(id){var n=0;workDocs(id).forEach(function(d){n+=stats(d.text).inc;});return n;}
-function workMeta(w){return workDocs(w.id).length+'회차 · '+NF.format(workChars(w.id))+'자';}
+function workMeta(w){return NF.format(workChars(w.id))+'자';}
 function updateCrumb(){var c=$('#crumb');if(c)c.textContent=curWork().title;}
 function lastVer(docId){for(var i=S.versions.length-1;i>=0;i--){if(S.versions[i].docId===docId)return S.versions[i];}return null;}
 
@@ -1058,7 +1089,7 @@ function logout(wipe){
   Y.ver={core:null,hist:null}; Y.rsig={core:'',hist:''}; Y.pending=null; Y.err='';
   clearTimeout(syncT); clearTimeout(syncMaxT); clearTimeout(histT); syncT=syncMaxT=histT=0;
   if(wipe){
-    S=normalize(seed()); S.fresh=true; S.tomb={}; delete S.owner; saveLSNow(); showAll(); toast('이 기기의 데이터를 지웠어요. 드라이브에는 그대로 있어요');
+    S=normalize(seed()); S.fresh=true; S.tomb={}; delete S.owner; saveLSNow(); showAll(); toast('이 기기의 데이터를 삭제했어요. 드라이브에는 그대로 있어요');
   }
   setY('off'); renderAcct(); renderAcctBtn(); refreshStatus();
 }
@@ -1351,7 +1382,7 @@ function renderAcct(){
   act.append(h('button',{class:'btn'+(Y.state==='reauth'?'':' accent'),disabled:Y.state==='busy',onclick:function(){syncNow('manual',true);}},'지금 동기화'));
   act.append(h('button',{class:'btn',onclick:function(){logout(false);closeAcct();showGate('login');}},'로그아웃'));
   box.append(act);
-  box.append(h('div',{class:'t-act'},h('button',{class:'btn sm danger-o',onclick:function(ev){askDel(ev.currentTarget,function(){logout(true);closeAcct();showGate('login');},'로그아웃하고 이 기기 데이터 지우기?');}},'로그아웃하고 이 기기 데이터 지우기')));
+  box.append(h('div',{class:'t-act'},h('button',{class:'btn sm danger-o',onclick:function(ev){askDel(ev.currentTarget,function(){logout(true);closeAcct();showGate('login');},'정말 삭제할까요?');}},'로그아웃하고 이 기기 데이터 삭제')));
   box.append(h('p',{class:'muted sm',text:'공용 기기라면 마지막 버튼으로 이 기기에 남은 글을 지워 주세요. 드라이브에 있는 글은 지워지지 않아요.'}));
 }
 
@@ -1432,7 +1463,7 @@ function delUI(){
   var dr=$('#drawer'); if(!dr) return;
   dr.classList.toggle('del',DEL.on);
   $('#delBar').hidden=!DEL.on;
-  $('#drT').textContent=DEL.on?'지울 것을 고르세요':'내 소설';
+  $('#drT').textContent=DEL.on?'삭제할 것을 고르세요':'내 소설';
   if(DEL.on){
     var wn=Object.keys(DEL.works).filter(function(k){return DEL.works[k];}).length, dn=Object.keys(DEL.docs).length;
     var parts=[]; if(wn)parts.push('소설 '+wn+'개'); if(dn)parts.push('회차 '+dn+'개');
@@ -1685,14 +1716,14 @@ function purgeDoc(id,quiet){
   S.versions=S.versions.filter(function(v){return v.docId!==id;});
   markGone('d_'+id); markGone('b_'+id); delete S.boards[id];
   S.docs=S.docs.filter(function(d){return d.id!==id;});
-  if(!quiet){saveLS();persistMeta();renderTrash();updateTrashLbl();toast('완전히 지웠어요');}
+  if(!quiet){saveLS();persistMeta();renderTrash();updateTrashLbl();toast('완전히 삭제했어요');}
 }
 function purgeWork(id,quiet){
   S.docs.filter(function(d){return d.workId===id;}).forEach(function(d){purgeDoc(d.id,true);});
   S.works=S.works.filter(function(w){return w.id!==id;});
   delete S.boards[id]; delete S.prefs.collapsed[id];
   markGone('w_'+id); markGone('b_'+id);
-  if(!quiet){saveLS();persistMeta();renderTrash();updateTrashLbl();toast('완전히 지웠어요');}
+  if(!quiet){saveLS();persistMeta();renderTrash();updateTrashLbl();toast('완전히 삭제했어요');}
 }
 function purgeExpired(){
   var lim=Date.now()-TRASH_DAYS*864e5, any=false;
@@ -1721,7 +1752,7 @@ function renderTrash(){
       h('div',{class:'t-meta',text:meta}),
       h('div',{class:'t-act'},
         h('button',{class:'btn sm accent',onclick:function(){if(it.type==='work')restoreWork(it.id);else restoreDoc(it.id);}},'복원'),
-        h('button',{class:'btn sm danger-o',onclick:function(ev){askDel(ev.currentTarget,function(){if(it.type==='work')purgeWork(it.id);else purgeDoc(it.id);},'정말 지울까요?');}},'완전히 삭제'))));
+        h('button',{class:'btn sm danger-o',onclick:function(ev){askDel(ev.currentTarget,function(){if(it.type==='work')purgeWork(it.id);else purgeDoc(it.id);},'정말 삭제할까요?');}},'완전히 삭제'))));
   });
 }
 
@@ -1887,7 +1918,7 @@ function openFMenu(anchor){
     var n=document.createElement('span'); n.textContent=F.n; n.style.fontFamily=F.f; b.append(n);
     var r=document.createElement('span'); r.className='fmr';
     if(F.k===cur) r.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
-    else {var sm=document.createElement('small'); sm.textContent=F.d; r.append(sm);}
+    else {var sm=document.createElement('small'); sm.textContent=F.s; r.append(sm);}
     b.append(r);
     b.addEventListener('click',function(){S.prefs.font=F.k;applyPrefs();saveLS();closeFMenu();});
     m.append(b);
@@ -1909,7 +1940,7 @@ function applyPrefs(){
   ed.style.fontSize=S.prefs.size+'px';
   var F=fontOf(S.prefs.font); ed.style.fontFamily=F.f; var tt=document.querySelector('.ttl'); if(tt) tt.style.fontFamily=F.f;
   fitEd();
-  $('#fontFace').textContent=F.s;
+  $('#fontFace').textContent=F.s; $('#fontFace').style.fontFamily=F.f;
   var fl=$('#fontSelL'); if(fl){fl.textContent=F.n; fl.style.fontFamily=F.f;}
   var fp=$('#fontPv'); if(fp) fp.style.fontFamily=F.f;
 }
@@ -2166,14 +2197,14 @@ function syncBoardBar(){
   $$('.note',cv).forEach(function(x){x.classList.toggle('lk',!!lk[x.getAttribute('data-id')]);});
   var dn=UI.bdel?Object.keys(UI.bdel).length:0, dB=$('#delNote');
   $$('.note',cv).forEach(function(x){x.classList.toggle('pick',!!(UI.bdel&&UI.bdel[x.getAttribute('data-id')]));});
-  if(!dB._arm){ dB.disabled=!!UI.bdel&&!dn; $('#delLbl').textContent=UI.bdel?(dn?dn+'개 지우기':'지울 것 고르기'):'삭제'; }
+  if(!dB._arm){ dB.disabled=!!UI.bdel&&!dn; $('#delLbl').textContent=UI.bdel?(dn?dn+'개 삭제':'삭제할 것 고르기'):'삭제'; }
   dB.classList.toggle('danger',!!UI.bdel&&dn>0); $('#delCancelB').hidden=!UI.bdel;
   ['addNote','linkBtn'].forEach(function(i){ if(UI.bdel) $('#'+i).disabled=true; else if(i==='addNote') $('#'+i).disabled=false; });
   if(UI.msel){ var b9=curBoard(), ok9={}; b9.notes.forEach(function(q){if(UI.msel[q.id])ok9[q.id]=1;}); UI.msel=Object.keys(ok9).length>1?ok9:null; }
   $$('.note',cv).forEach(function(x){x.classList.toggle('msel',!!(UI.msel&&UI.msel[x.getAttribute('data-id')]));});
   var mn=UI.msel?Object.keys(UI.msel).length:0;
   $('#boxBtn').setAttribute('aria-pressed',UI.box?'true':'false');
-  var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'지울 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀌어요.':'포스트잇을 탭해서 고르세요.';
+  var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'삭제할 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀌어요.':'포스트잇을 탭해서 고르세요.';
   var lbl=S.prefs.scope==='work'?'「'+curWork().title+'」 소설 공용 보드':'「'+(cur().title||'제목 없음')+'」 회차 보드';
   $('#bdHint').textContent=lbl+' · '+tail;
 }
@@ -2222,7 +2253,7 @@ function bdelGo(){
   b0.links=b0.links.filter(function(l){return !ids[l.a]&&!ids[l.b];});
   UI.bdel=null; cv.classList.remove('deleting');
   persistBoard(); renderBoard();
-  toast('포스트잇 '+k.length+'개를 지웠어요','되돌리기',function(){var b1=curBoard();b1.notes=keepN;b1.links=keepL;persistBoard();renderBoard();});
+  toast('포스트잇 '+k.length+'개를 삭제했어요','되돌리기',function(){var b1=curBoard();b1.notes=keepN;b1.links=keepL;persistBoard();renderBoard();});
 }
 
 /* ---------- 기록 ---------- */
@@ -2275,15 +2306,16 @@ function renderHistDetail(list){
   if(!v){box.append(h('div',{class:'empty-note',text:'왼쪽에서 기록을 고르면 지금 글과 비교해서 볼 수 있어요.'}));return;}
   var d=cur();
   box.append(
-    h('button',{class:'btn sm back',onclick:function(){UI.hist=null;renderHist();}},ico('back'),'기록 목록'),
+    h('button',{class:'ib back','aria-label':'기록 목록으로',title:'기록 목록',onclick:function(){UI.hist=null;renderHist();}},ico('back')),
     h('div',{class:'hd mt'},h('h3',{text:when(v.t)+' · '+(REASON[v.reason]||'기록')}),
       h('p',{class:'muted',text:'기록 '+NF.format(stats(v.text).inc)+'자 → 지금 '+NF.format(stats(d.text).inc)+'자'})),
     h('div',{class:'h-bar'},
       h('div',{class:'seg'},
         h('button',{'aria-pressed':UI.hmode==='diff'?'true':'false',onclick:function(){if(UI.hmode!=='diff'){hKeep();UI.hmode='diff';renderHist();}}},'지금 글과 비교'),
         h('button',{'aria-pressed':UI.hmode==='raw'?'true':'false',onclick:function(){if(UI.hmode!=='raw'){hKeep();UI.hmode='raw';renderHist();}}},'이 기록 원문')),
-      h('button',{class:'btn accent sm',onclick:function(){restoreVersion(v);}},'이 기록으로 되돌리기'),
-      h('button',{class:'btn danger-o sm',onclick:function(ev){askDel(ev.currentTarget,function(){delVersion(v);UI.hist=null;renderHist();toast('기록을 지웠어요');},'정말 지울까요?');}},ico('trash'),'지우기')));
+      h('div',{class:'h-act'},
+        h('button',{class:'btn accent',onclick:function(){restoreVersion(v);}},ico('undo'),'이 기록으로 되돌리기'),
+        h('button',{class:'btn',onclick:function(ev){askDel(ev.currentTarget,function(){delVersion(v);UI.hist=null;renderHist();toast('기록을 삭제했어요');},'정말 삭제할까요?');}},ico('trash'),'삭제'))));
   var ops=diffLines(v.text,d.text), bk=diffBlocks(ops), sc;
   if(UI.hmode==='raw'){
     sc=renderRaw(v,ops,bk);
@@ -2329,18 +2361,18 @@ function hNav(n){
   if(!n) return h('div',{class:'h-nav'},h('span',{class:'muted',text:'지금 글과 같아요'}));
   var lbl=h('span',{class:'h-pos',id:'hPos'});
   var up=h('button',{class:'btn',id:'hUp','aria-label':'이전 바뀐 곳'},ico('up')), dn=h('button',{class:'btn',id:'hDn','aria-label':'다음 바뀐 곳'},ico('down'),'다음');
-  up.onclick=function(){hGo(UI.hcur==null?0:Math.max(0,UI.hcur-1));};
-  dn.onclick=function(){hGo(UI.hcur==null?0:Math.min(n-1,UI.hcur+1));};
+  up.onclick=function(){hGo(Math.max(0,(UI.hcur==null?0:UI.hcur)-1));};
+  dn.onclick=function(){hGo(Math.min(n-1,(UI.hcur==null?0:UI.hcur)+1));};
   var bar=h('div',{class:'h-nav'},lbl,up,dn); bar._n=n; hLbl(bar);
   return bar;
 }
 function hLbl(bar){
   bar=bar||$('.h-nav'); if(!bar||!bar._n) return;
   var l=bar.querySelector('.h-pos'); l.textContent='';
-  if(UI.hcur==null) l.append('바뀐 곳 '+bar._n+'곳');
-  else l.append('바뀐 곳 ',h('b',{text:String(UI.hcur+1)}),' / '+bar._n);
-  bar.querySelector('#hUp').disabled=UI.hcur==null||UI.hcur<=0;
-  bar.querySelector('#hDn').disabled=UI.hcur!=null&&UI.hcur>=bar._n-1;
+  var c=UI.hcur==null?0:UI.hcur;   // 처음에는 첫 번째 바뀐 곳(비교·원문 모두 "1 / n")
+  l.append('바뀐 곳 ',h('b',{text:String(c+1)}),' / '+bar._n);
+  bar.querySelector('#hUp').disabled=c<=0;
+  bar.querySelector('#hDn').disabled=c>=bar._n-1;
 }
 function hScroller(){return $('#hDetail .raw')||$('#hDetail .diff');}
 function hGo(k,instant){
@@ -2685,11 +2717,11 @@ function bindOnce(){
   $('#setX').addEventListener('click',closeSet);
   $('#trashX').addEventListener('click',closeTrash);
   $('#trashM').addEventListener('click',function(ev){if(ev.target===$('#trashM'))closeTrash();});
-  $('#trashEmpty').addEventListener('click',function(ev){askDel(ev.currentTarget,emptyTrash,'전부 지울까요?');});
+  $('#trashEmpty').addEventListener('click',function(ev){askDel(ev.currentTarget,emptyTrash,'전부 삭제할까요?');});
   document.addEventListener('keydown',function(ev){if(ev.key==='Escape'){if(!$('#trashM').hidden)closeTrash();if(!$('#setM').hidden)closeSet();if(!$('#acctM').hidden)closeAcct();}});
   $('#delBtn').addEventListener('click',function(){DEL.on=true;DEL.docs={};DEL.works={};renderDrawer();});
   $('#delCancel').addEventListener('click',delOff);
-  $('#delGo').addEventListener('click',function(ev){askDel(ev.currentTarget,doDelete,'정말 지울까요?');});
+  $('#delGo').addEventListener('click',function(ev){askDel(ev.currentTarget,doDelete,'정말 삭제할까요?');});
   $('#dlX').addEventListener('click',closeDl);
   $('#dlM').addEventListener('click',function(ev){if(ev.target===$('#dlM'))closeDl();});
   $('#dlTxt').addEventListener('click',function(){var t=DLT;closeDl();if(t)exportItem(t.kind,t.id,'txt');});
@@ -2777,7 +2809,7 @@ function bindOnce(){
   $('#delNote').addEventListener('click',function(ev){
     if(!UI.bdel){bdelStart();return;}
     if(!Object.keys(UI.bdel).length) return;
-    askDel(ev.currentTarget,bdelGo,'정말 지울까요?');
+    askDel(ev.currentTarget,bdelGo,'정말 삭제할까요?');
   });
   $('#delCancelB').addEventListener('click',bdelEnd);
   $('#boxBtn').addEventListener('click',function(){ if(UI.box){boxEnd();return;} endLink(); UI.box=true; bd.classList.add('boxing'); syncBoardBar(); });
