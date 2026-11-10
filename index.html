@@ -474,6 +474,15 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 /* 기록 목록: 바로 전 기록보다 추가·삭제한 글자 수 */
 .vrow .vch{color:var(--ink-2)}
 .vrow .v-add{color:#3F7FCB;font-weight:500}.vrow .v-del{color:#C0543F;font-weight:500}
+/* 기록 목록: 전체 글자 수·추가·삭제를 같은 높이, 가운데 맞춤 */
+.vrow .t2{display:flex;align-items:center;gap:8px;line-height:18px;font-size:12px}
+.vrow .t2>span,.vrow .vch{display:inline-flex;align-items:center;gap:4px;height:18px;line-height:18px;font-size:12px;font-weight:500}
+.vrow .vch>span{display:inline-flex;align-items:center;height:18px;line-height:18px;font-size:12px;font-weight:500}
+.vrow .vch .v-sep{color:var(--ink-3,var(--ink-2));font-weight:400}
+/* 기록 비교: −/+ 표시 없이 문단 하나로 */
+.diff .dl{padding:0 16px}
+.diff .sg{display:none}
+.diff .nl{font:12px var(--f-ui);padding:0 2px}
 </style>
 </head>
 <body>
@@ -2222,22 +2231,10 @@ var VCH={};
 /* 기록 비교 화면에 칠해지는 것과 똑같이 센다: 지운 글자·추가된 글자 수(줄바꿈 제외) */
 function blockCount(dels,adds){
   var add=0, del=0;
-  function n(mk){var c=0;for(var k=0;k<mk.length;k++) if(mk[k]) c++; return c;}
-  if(dels.length&&adds.length&&dels.length!==adds.length){
-    var bm=blockMarks(dels,adds);
-    if(bm){ bm.dm.forEach(function(m){del+=n(m);}); bm.am.forEach(function(m){add+=n(m);}); return {add:add,del:del}; }
-  }
-  var dI=pairIdx(dels,adds), used={};
-  dels.forEach(function(a,x){
-    var y=dI[x];
-    if(y==null){ del+=a.length; return; }
-    used[y]=1;
-    var b=adds[y], r=inlineNodes(a,b);
-    if(r&&r.same) return;
-    if(r&&r.ratio<=0.5) r.parts.forEach(function(p){ if(p.k==='d') del+=p.s.length; else if(p.k==='a') add+=p.s.length; });
-    else { del+=n(charMarks(a,b)); add+=n(charMarks(b,a)); }
-  });
-  adds.forEach(function(b,y){ if(!used[y]) add+=b.length; });
+  blockPlan(dels,adds).forEach(function(row){ row.forEach(function(p){
+    if(p.nl) return;
+    if(p.k==='d') del+=p.s.length; else if(p.k==='a') add+=p.s.length;
+  }); });
   return {add:add,del:del};
 }
 function verChange(a,b){
@@ -2266,7 +2263,7 @@ function renderHist(){
       h('span',{class:'t1'},h('span',{text:when(v.t)}),h('span',{class:'chip',text:REASON[v.reason]||'기록'})),
       h('span',{class:'t2'},h('span',{text:NF.format(len)+'자'}),
         !ch?h('span',{class:'vch',text:'첫 기록'}):(!ch.add&&!ch.del)?h('span',{class:'vch',text:'바뀐 글자 없음'}):
-        h('span',{class:'vch'},ch.add?h('span',{class:'v-add',text:'추가 '+NF.format(ch.add)+'자'}):null,ch.add&&ch.del?' · ':null,ch.del?h('span',{class:'v-del',text:'삭제 '+NF.format(ch.del)+'자'}):null))));
+        h('span',{class:'vch'},ch.add?h('span',{class:'v-add',text:'추가 '+NF.format(ch.add)+'자'}):null,ch.add&&ch.del?h('span',{class:'v-sep',text:'·'}):null,ch.del?h('span',{class:'v-del',text:'삭제 '+NF.format(ch.del)+'자'}):null))));
   });
   box.append(vl);
   $('#hist').classList.toggle('open',!!UI.hist);
@@ -2460,7 +2457,7 @@ function rowEl(kind,sign,s,other){
   if(kind==='eq') kids=s||' ';
   else if(other===undefined){var m=document.createElement('mark');m.textContent=s||' ';kids=m;}
   else{var mk=charMarks(s,other); if(!mk.some(Boolean)) return null; kids=marksToNodes(s,mk);}
-  return h('div',{class:'dl '+kind},h('span',{class:'sg',text:sign}),h('span',{class:'tx'},kids));
+  return kind==='eq'?h('div',{class:'dl eq'},h('span',{class:'tx'},kids)):h('div',{class:'dl '+kind},h('span',{class:'sg',text:sign}),h('span',{class:'tx'},kids));
 }
 /* 한 문장 안에서 바뀐 곳 보여 주기: 같은 낱말은 그대로, 지운 글은 빨강+취소선, 추가된 글은 파랑 */
 function inlineNodes(a,b){
@@ -2494,7 +2491,13 @@ function inlineNodes(a,b){
     if(/\s$/.test(db)||(!y&&/\s$/.test(da))) eq(' ');
   }
   while(i<n||j<m){
-    if(i<n&&j<m&&r.ma[i]&&r.mb[j]){ eq(tb[j]); i++; j++; continue; }
+    if(i<n&&j<m&&r.ma[i]&&r.mb[j]){   // 같은 낱말: 뒤따르는 줄바꿈이 생기거나 없어졌으면 ↵ 로 표시
+      var wa=ta[i].match(/\s*$/)[0], wb=tb[j].match(/\s*$/)[0];
+      eq(tb[j].slice(0,tb[j].length-wb.length));
+      if(/\n/.test(wa)&&!/\n/.test(wb)) out.push({k:'d',s:'↵',nl:1});
+      else if(/\n/.test(wb)&&!/\n/.test(wa)) out.push({k:'a',s:'↵',nl:1});
+      eq(wb); i++; j++; continue;
+    }
     var da='', db='';
     while(i<n&&!r.ma[i]){ da+=ta[i]; i++; }
     while(j<m&&!r.mb[j]){ db+=tb[j]; j++; }
@@ -2503,12 +2506,14 @@ function inlineNodes(a,b){
   }
   var l=last(); if(l&&l.k==='e') l.s=l.s.replace(/\s+$/,'');
   var tot=a.replace(/\s/g,'').length+b.replace(/\s/g,'').length;
-  return {parts:out, ratio:tot?chg/tot:0, same:chg<=0};
+  return {parts:out, ratio:tot?chg/tot:0, same:!out.some(function(p){return p.k!=='e';})};
 }
 function partsEl(parts){
   return parts.map(function(p){
     if(p.k==='e') return document.createTextNode(p.s);
-    var e=document.createElement(p.k==='d'?'del':'ins'); e.textContent=p.s; return e;
+    var e=document.createElement(p.k==='d'?'del':'ins'); e.textContent=p.s||'(빈 줄)';
+    if(!p.s) e.className='empty'; if(p.nl){ e.className='nl'; e.title=p.k==='d'?'없앤 줄바꿈':'새 줄바꿈'; }
+    return e;
   });
 }
 function lineRow(kind,s){   // 줄 전체가 지워졌거나 새로 생긴 경우
@@ -2525,32 +2530,33 @@ function pairIdx(dels,adds){
   }
   return dI;
 }
-/* 바뀐 곳 하나(연속으로 달라진 줄 묶음)를 줄들로 그리기 */
-function blockRows(dels,adds){
-  var rows=[];
-  if(dels.length&&adds.length&&dels.length!==adds.length){   // 문단을 합치거나 나눈 경우: 덩어리 전체 비교(줄바꿈 ↵ 표시)
-    var bm=blockMarks(dels,adds);
-    if(bm){
-      dels.forEach(function(s,x){var e=rowMarked('del','−',s,bm.dm[x],bm.dn[x]);if(e)rows.push(e);});
-      adds.forEach(function(s,x){var e=rowMarked('add','+',s,bm.am[x],bm.an[x]);if(e)rows.push(e);});
-      if(rows.length) return rows;
-    }
+/* 바뀐 곳 하나(연속으로 달라진 줄 묶음)를 문단별 조각으로 나눈다. 한 문단은 한 줄에: 그대로인 글 + 지운 글(취소선) + 추가된 글 */
+function splitRows(parts){
+  var rows=[[]];
+  parts.forEach(function(p){
+    p.s.split('\n').forEach(function(t,i){ if(i) rows.push([]); if(t) rows[rows.length-1].push({k:p.k,s:t,nl:p.nl}); });
+  });
+  return rows.filter(function(r){return r.length;});
+}
+function blockPlan(dels,adds){
+  if(dels.length&&adds.length&&dels.length!==adds.length){   // 문단을 합치거나 나눈 경우: 덩어리 전체를 한 번에 비교
+    var r0=inlineNodes(dels.join('\n'),adds.join('\n'));
+    if(r0) return r0.same?[]:splitRows(r0.parts);
   }
-  var dI=pairIdx(dels,adds), ya=0;
+  var rows=[], dI=pairIdx(dels,adds), ya=0;
   dels.forEach(function(a,x){
     var y=dI[x];
-    if(y==null){ rows.push(lineRow('del',a)); return; }
-    while(ya<y){ rows.push(lineRow('add',adds[ya])); ya++; }
-    var b=adds[y], r=inlineNodes(a,b); ya=y+1;
-    if(r&&r.same) return;
-    if(r&&r.ratio<=0.5) rows.push(h('div',{class:'dl inl'},h('span',{class:'sg',text:'±'}),h('span',{class:'tx'},partsEl(r.parts))));
-    else {   // 문단을 거의 새로 썼으면 예전 문단과 지금 문단을 나눠서
-      var e1=rowEl('del','−',a,b), e2=rowEl('add','+',b,a);
-      if(e1) rows.push(e1); if(e2) rows.push(e2);
-    }
+    if(y==null){ rows.push([{k:'d',s:a}]); return; }
+    while(ya<y){ rows.push([{k:'a',s:adds[ya]}]); ya++; }
+    var r=inlineNodes(a,adds[y]); ya=y+1;
+    if(!r) rows.push([{k:'d',s:a}],[{k:'a',s:adds[y]}]);
+    else if(!r.same) rows.push(r.parts);
   });
-  while(ya<adds.length){ rows.push(lineRow('add',adds[ya])); ya++; }
+  while(ya<adds.length){ rows.push([{k:'a',s:adds[ya]}]); ya++; }
   return rows;
+}
+function blockRows(dels,adds){
+  return blockPlan(dels,adds).map(function(row){ return h('div',{class:'dl inl'},h('span',{class:'tx'},partsEl(row))); });
 }
 function renderDiff(ops,bk){
   bk=bk||diffBlocks(ops);
