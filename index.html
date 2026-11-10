@@ -514,6 +514,56 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 #themeSeg{height:38px;box-sizing:border-box}
 #themeSeg button{height:100%;padding-top:0;padding-bottom:0}
 .del-bar{min-height:45px}
+/* 쓰기 툴바: 모든 기기에서 아이콘만, 집중 모드는 맨 오른쪽 */
+#snapBtn .ic,#focusBtn .ic{width:18px;height:18px}
+/* 알림은 위쪽(탭 바로 아래)에 띄워서 툴바를 가리지 않게 */
+.toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 100px)}
+
+/* 보드 바 공통 */
+.bd-bar .lbl:empty{display:none}
+.sw-cur{display:none}
+.scope-btn{display:none;gap:4px}
+.scope-btn .ic{width:14px;height:14px}
+#zFit .ic{width:16px;height:16px}
+.scope-menu .fmi{align-items:center}
+.scope-menu .sm-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.scope-menu .sm-tx small{font:11.5px var(--f-ui);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scope-menu .fmi[aria-selected=true] small{color:inherit;opacity:.8}
+.fmenu.scope-menu{position:fixed;z-index:70}
+
+/* 휴대폰: 보드 바를 아이콘 한 줄로 */
+@media (max-width:600px){
+  .bd-bar{flex-wrap:nowrap;gap:6px;position:relative}
+  .bd-bar .lbl{display:none}
+  .bd-bar.m-link #linkLbl,.bd-bar.m-del #delLbl{display:inline}
+  .bd-bar #addNote,.bd-bar #boxBtn,.bd-bar #linkBtn,.bd-bar #delNote{min-width:38px;padding:0 10px;gap:6px}
+  .bd-bar .ic{width:18px;height:18px}
+  .bd-bar #delNote svg{width:16px;height:16px}
+  .bd-bar #scope{display:none}
+  .scope-btn{display:inline-flex;margin-left:auto;flex:none}
+  .bd-bar.m-del .scope-btn,.bd-bar.m-link .scope-btn{display:none}
+  .bd-bar #delCancelB{margin-left:auto}
+  /* 색: 지금 색 하나만, 누르면 펼침 */
+  .sw-cur{display:block;flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);padding:0}
+  .sw-cur[aria-expanded=true]{box-shadow:0 0 0 2px var(--accent)}
+  .bd-bar .sw{display:none;position:absolute;top:calc(100% - 2px);left:0;z-index:60;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;gap:10px}
+  .bd-bar .sw.open{display:flex}
+  .bd-bar .sw button{width:32px;height:32px}
+  /* 확대·축소: 보드 오른쪽 아래에 떠 있는 묶음 */
+  .bd-bar .zoom{position:fixed;right:22px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);z-index:6;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;box-shadow:0 2px 10px rgb(0 0 0 / .12)}
+  .bd-bar .zoom .ib,.bd-bar .zoom .btn,.bd-bar .zoom .btn.sm{border:0;min-width:34px;height:34px;min-height:34px;background:transparent;padding:0 8px}
+  .bd-bar .zoom .zv{min-width:50px}
+  /* 안내: 평소엔 숨기고, 삭제·연결·범위 선택·여러 장 고르기 중에만 보드 위에 */
+  .bd-bar .hint{display:none;position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);z-index:6;background:var(--ink);color:var(--bg);padding:7px 12px;border-radius:10px;font-size:12.5px;line-height:1.45;width:max-content;max-width:calc(100% - 24px);text-align:center;pointer-events:none;flex:none;min-width:0}
+  .bd-bar.m-del .hint,.bd-bar.m-link .hint,.bd-bar.m-box .hint,.bd-bar.m-msel .hint{display:block}
+  .bd-bar .hint-b{display:none}
+}
+
+/* "정말 삭제할까요?"처럼 실제로 지우는 순간의 빨간 버튼은 눌렀을 때(터치 후 hover 남음)도 빨강 유지 */
+.btn.arm,.btn.arm:hover:not(:disabled),.btn.arm:active:not(:disabled),
+.btn.danger:hover:not(:disabled),.btn.danger:active:not(:disabled),
+.del-go:hover:not(:disabled),.del-go:active:not(:disabled),
+.ib.arm,.ib.arm:hover,.doc-del.arm,.doc-del.arm:hover,.wk-btn.arm,.wk-btn.arm:hover{background:var(--danger);color:#FBFAF6;border-color:var(--danger)}
 </style>
 </head>
 <body>
@@ -556,13 +606,13 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
           <div class="wbar">
             <div class="stats" id="stats"></div>
             <div class="tools">
-              <button class="ib" id="focusBtn" aria-label="집중 모드" title="집중 모드" data-ico="focus"></button>
               <button class="ib" id="undo" aria-label="실행 취소" data-ico="undo"></button>
               <button class="ib" id="redo" aria-label="다시 실행" data-ico="redo"></button>
               <button class="ib" id="fontMinus" aria-label="글자 작게">가−</button>
               <button class="ib" id="fontPlus" aria-label="글자 크게">가+</button>
               <button class="ib" id="fontFace" data-fmenu aria-haspopup="listbox" aria-expanded="false" aria-label="글꼴 바꾸기">명조</button>
-              <button class="btn sm" id="snapBtn"><span data-ico="clock"></span>기록 남기기</button>
+              <button class="ib" id="snapBtn" aria-label="기록 남기기" title="기록 남기기" data-ico="clock"></button>
+              <button class="ib" id="focusBtn" aria-label="집중 모드" title="집중 모드" data-ico="focus"></button>
             </div>
           </div>
         </div>
@@ -570,12 +620,14 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 
       <section class="pane" id="pane-board" role="tabpanel" aria-labelledby="tab-board" hidden>
         <div class="bd-bar">
-          <button class="btn accent" id="addNote"><span data-ico="plus"></span>포스트잇</button>
+          <button class="btn accent" id="addNote" aria-label="포스트잇 추가"><span data-ico="plus"></span><span class="lbl">포스트잇</span></button>
+          <button class="sw-cur" id="swCur" aria-label="포스트잇 색 고르기" aria-haspopup="true" aria-expanded="false"></button>
           <div class="sw" id="sw" role="group" aria-label="포스트잇 색"></div>
-          <button class="btn" id="boxBtn" aria-pressed="false"><span data-ico="box"></span>범위 선택</button><button class="btn" id="linkBtn" aria-pressed="false"><span data-ico="link"></span><span id="linkLbl">연결</span></button>
-          <button class="btn" id="delNote"><span data-ico="trash"></span><span id="delLbl">삭제</span></button><button class="btn" id="delCancelB" hidden>취소</button>
+          <button class="btn" id="boxBtn" aria-pressed="false" aria-label="범위 선택"><span data-ico="box"></span><span class="lbl">범위 선택</span></button><button class="btn" id="linkBtn" aria-pressed="false" aria-label="연결"><span data-ico="link"></span><span class="lbl" id="linkLbl">연결</span></button>
+          <button class="btn" id="delNote" aria-label="삭제"><span data-ico="trash"></span><span class="lbl" id="delLbl">삭제</span></button><button class="btn" id="delCancelB" hidden>취소</button>
           <div class="seg" id="scope" role="group" aria-label="보드 범위"><button data-scope="doc" aria-pressed="true">이 회차</button><button data-scope="work" aria-pressed="false">소설 공용</button></div>
-          <div class="zoom" role="group" aria-label="확대 축소"><button class="ib" id="zOut" aria-label="축소">−</button><button class="ib zv" id="zVal" aria-label="100%로 되돌리기">100%</button><button class="ib" id="zIn" aria-label="확대">+</button><button class="btn sm" id="zFit">전체 보기</button></div>
+          <button class="btn scope-btn" id="scopeBtn" aria-haspopup="listbox" aria-expanded="false"><span id="scopeLbl">이 회차</span><span data-ico="down"></span></button>
+          <div class="zoom" role="group" aria-label="확대 축소"><button class="ib" id="zOut" aria-label="축소">−</button><button class="ib zv" id="zVal" aria-label="100%로 되돌리기">100%</button><button class="ib" id="zIn" aria-label="확대">+</button><button class="btn sm" id="zFit" aria-label="전체 보기" title="포스트잇이 모두 보이게"><span data-ico="fit"></span><span class="lbl">전체 보기</span></button></div>
           <span class="hint" id="bdHint"></span>
         </div>
         <div class="bd" id="bd">
@@ -866,6 +918,7 @@ var ICONS={
   box:'<rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 3"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  fit:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   back:'<path d="M15 5l-7 7 7 7"/>',
   download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
   up:'<path d="M6 15l6-6 6 6"/>',
@@ -2191,6 +2244,8 @@ function selectNote(id){
 function syncBoardBar(){
   var n=UI.sel&&noteById(UI.sel), has=!!n;
   $$('#sw button').forEach(function(b,i){b.disabled=false;b.setAttribute('aria-pressed',(has?n.c:penC())===i?'true':'false');});
+  $('#swCur').style.background='var(--n'+(has?n.c:penC())+')';
+  $('#scopeLbl').textContent=S.prefs.scope==='work'?'소설 공용':'이 회차';
   $('#linkBtn').disabled=!has; $('#linkBtn').setAttribute('aria-pressed',UI.linking?'true':'false');
   $('#linkLbl').textContent=UI.linking?'연결 끝내기':'연결';
   var lk={}; if(UI.linking&&has) curBoard().links.forEach(function(l){if(l.a===n.id)lk[l.b]=1;else if(l.b===n.id)lk[l.a]=1;});
@@ -2206,7 +2261,8 @@ function syncBoardBar(){
   $('#boxBtn').setAttribute('aria-pressed',UI.box?'true':'false');
   var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'삭제할 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀌어요.':'포스트잇을 탭해서 고르세요.';
   var lbl=S.prefs.scope==='work'?'「'+curWork().title+'」 소설 공용 보드':'「'+(cur().title||'제목 없음')+'」 회차 보드';
-  $('#bdHint').textContent=lbl+' · '+tail;
+  var hb=$('#bdHint'); hb.textContent=''; hb.append(h('span',{class:'hint-b',text:lbl+' · '}),h('span',{class:'hint-t',text:tail}));
+  var bar=$('.bd-bar'); bar.classList.toggle('m-del',!!UI.bdel); bar.classList.toggle('m-link',!!UI.linking); bar.classList.toggle('m-box',!!UI.box); bar.classList.toggle('m-msel',mn>1);
 }
 function drawLinks(){
   var map={};
@@ -2256,6 +2312,37 @@ function bdelGo(){
   toast('포스트잇 '+k.length+'개를 삭제했어요','되돌리기',function(){var b1=curBoard();b1.notes=keepN;b1.links=keepL;persistBoard();renderBoard();});
 }
 
+
+/* 휴대폰: 색 고르기 펼침, 보드 고르기 메뉴 */
+var bPop=null;
+function closeBPop(){ if(bPop){ bPop.close(); bPop=null; } }
+function bOut(e){ if(bPop&&!bPop.el.contains(e.target)&&!bPop.anchor.contains(e.target)) closeBPop(); }
+function bKey(e){ if(e.key==='Escape'&&bPop){ e.stopImmediatePropagation(); e.preventDefault(); closeBPop(); } }
+function watchBPop(p){ bPop=p; document.addEventListener('pointerdown',bOut,true); document.addEventListener('keydown',bKey,true); window.addEventListener('resize',closeBPop); }
+function unwatchBPop(){ document.removeEventListener('pointerdown',bOut,true); document.removeEventListener('keydown',bKey,true); window.removeEventListener('resize',closeBPop); }
+function toggleSwPop(){
+  var a=$('#swCur'), sw=$('#sw');
+  if(bPop){ var same=bPop.anchor===a; closeBPop(); if(same) return; }
+  sw.classList.add('open'); a.setAttribute('aria-expanded','true');
+  watchBPop({el:sw,anchor:a,close:function(){sw.classList.remove('open');a.setAttribute('aria-expanded','false');unwatchBPop();}});
+}
+function toggleScopeMenu(){
+  var a=$('#scopeBtn');
+  if(bPop){ var same=bPop.anchor===a; closeBPop(); if(same) return; }
+  var m=h('div',{class:'fmenu scope-menu',role:'listbox'});
+  [{k:'doc',n:'이 회차 보드'},{k:'work',n:'공용 보드'}].forEach(function(o){
+    var on=S.prefs.scope===o.k;
+    var b=h('button',{type:'button',class:'fmi','role':'option','aria-selected':on?'true':'false',onclick:function(){closeBPop();setScope(o.k);}},h('span',{text:o.n}));
+    if(on){ var r=h('span',{class:'fmr'}); r.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'; b.append(r); }
+    m.append(b);
+  });
+  m.addEventListener('pointerdown',function(e){e.preventDefault();});
+  document.body.append(m);
+  var r=a.getBoundingClientRect(), w=Math.min(200,window.innerWidth-16); m.style.width=w+'px';
+  m.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+'px'; m.style.top=(r.bottom+6)+'px';
+  a.setAttribute('aria-expanded','true');
+  watchBPop({el:m,anchor:a,close:function(){m.remove();a.setAttribute('aria-expanded','false');unwatchBPop();}});
+}
 /* ---------- 기록 ---------- */
 var REASON={auto:'자동 기록',manual:'직접 기록','before-restore':'되돌리기 직전','before-spell':'맞춤법 적용 직전',sync:'동기화 때 덮인 글',import:'백업에서 가져온 글','before-import':'백업 가져오기 전 글'};
 var VCH={};
@@ -2769,7 +2856,7 @@ function bindOnce(){
   var sw=$('#sw');
   for(var i=0;i<NCOLORS;i++)(function(i){
     var b=h('button',{'aria-label':'색 '+(i+1),'aria-pressed':'false',onclick:function(){
-      S.prefs.pen=i; saveLS();
+      S.prefs.pen=i; saveLS(); if(bPop&&bPop.el===sw) closeBPop();
       if(UI.msel){ curBoard().notes.forEach(function(q){ if(UI.msel[q.id]){ q.c=i; var el=$('.note[data-id="'+q.id+'"]',cv); if(el) el.style.background='var(--n'+i+')'; } }); persistBoard(); syncBoardBar(); return; }
       var n=noteById(UI.sel); if(!n){syncBoardBar();return;} n.c=i;
       var e=$('.note[data-id="'+n.id+'"]',cv); if(e) e.style.background='var(--n'+i+')';
@@ -2778,6 +2865,8 @@ function bindOnce(){
     b.style.background='var(--n'+i+')'; sw.append(b);
   })(i);
   $('#addNote').addEventListener('click',function(){addNote();});
+  $('#swCur').addEventListener('click',toggleSwPop);
+  $('#scopeBtn').addEventListener('click',toggleScopeMenu);
   $('#addNote2').addEventListener('click',function(){addNote();});
   $('#goShared').addEventListener('click',function(){setScope('work');});
   $$('#scope button').forEach(function(b){b.addEventListener('click',function(){setScope(b.getAttribute('data-scope'));});});
