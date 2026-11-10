@@ -670,7 +670,6 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
     <section class="set-sec"><h3>글쓰기 글꼴</h3>
       <div class="fpv" id="fontPv">안녕하세요, 플롯노트입니다. 오늘의 이야기를 시작해 볼까요?<br>Welcome to Plotnote. Shall we start today’s story?</div>
       <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-      <p class="muted sm" style="margin:0">글쓰기 화면의 본문과 제목에 적용돼요. 글쓰기 화면 아래 툴바의 글꼴 버튼으로도 바꿀 수 있어요. 이 기기에 저장돼요.</p>
     </section>
     <section class="set-sec"><h3>백업</h3>
       <div class="bk-row"><button class="btn" id="bkOut"><span data-ico="download"></span>백업 파일 받기</button><button class="btn" id="bkIn"><span data-ico="upload"></span>백업 파일 불러오기</button></div>
@@ -689,8 +688,8 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
       <p class="muted sm" style="margin:0">지운 소설과 회차는 30일 동안 보관돼요. 여기서 복원할 수 있어요.</p>
     </section>
     <section class="set-sec"><h3>사용 안내</h3>
-      <button class="btn set-trash" id="addGuide"><span data-ico="plus"></span>사용 안내 소설 추가</button>
-      <p class="muted sm" style="margin:0">플롯노트 소개와 사용법을 담은 "플롯노트 안내" 소설을 내 소설 목록에 더해요. 필요 없으면 삭제해도 돼요.</p>
+      <button class="btn set-trash" id="addGuide"><span data-ico="plus"></span>사용 안내 추가</button>
+      <p class="muted sm" style="margin:0">플롯노트 소개와 사용법을 내 소설 목록에 더해요.</p>
     </section>
 </div>
 </div>
@@ -1817,7 +1816,7 @@ function dateKo(t){var d=new Date(t);return d.getFullYear()+'. '+(d.getMonth()+1
 function backupLbl(){
   var l=$('#bkLast'); if(!l) return;
   var t=S&&S.prefs.lastBackup;
-  l.textContent=t?'이 기기에서 마지막으로 받은 백업: '+dateKo(t):'이 기기에서 아직 백업 파일을 받은 적이 없어요.';
+  l.textContent=t?'이 기기에서 마지막으로 받은 백업: '+dateKo(t):'이 기기에서 아직 백업 파일을 받은 적이 없어요.'; l.hidden=false;
 }
 function exportBackup(){
   var now=Date.now();
