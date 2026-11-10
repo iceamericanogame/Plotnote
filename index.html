@@ -565,6 +565,26 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .del-go:hover:not(:disabled),.del-go:active:not(:disabled),
 .ib.arm,.ib.arm:hover,.doc-del.arm,.doc-del.arm:hover,.wk-btn.arm,.wk-btn.arm:hover{background:var(--danger);color:#FBFAF6;border-color:var(--danger)}
 .fpv{word-break:keep-all;overflow-wrap:anywhere}
+/* 서랍 편집 모드 */
+.drawer.editing .dr-foot,.drawer.editing #newWork{display:none}
+.edit-bar .btn{flex:1;justify-content:center}
+.drawer.editing .wk,.drawer.editing .doc{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y;position:relative}
+.drawer.editing .doc-grip{width:28px;margin-left:0}            /* 눈에 보이는 점은 그대로, 누르는 범위는 넓게 */
+.drawer.editing .wk .doc-grip{width:26px}
+.wk-chev{flex:none;background:none;border:0;width:26px;height:34px;display:grid;place-items:center;color:var(--ink-3);padding:0;border-radius:7px}
+.wk-chev .ic{width:16px;height:16px}
+.wk-main.rn-t{padding-left:2px}
+.wk-main.rn-t,.doc-main.rn-t{cursor:grab}
+.doc-in{flex:1;min-width:0;height:36px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--ink);font:500 13.5px var(--f-ui);padding:0 10px;margin:2px 4px 2px 2px}
+.drawer.editing .wk-in{margin-left:2px}
+/* 꾹 누르는 동안: 0.5초에 걸쳐 살짝 진해짐 → 잡힘 */
+.drawer.editing .wk,.drawer.editing .doc{transition:background-color .5s ease}
+.drawer.editing .pressing{background:var(--surface-2)}
+/* 잡은 줄: 떠오름 / 다른 줄: 부드럽게 비켜남 / 놓으면 내려앉음 */
+.drawer .dragging{background:var(--surface);box-shadow:0 8px 24px rgb(0 0 0 / .16),0 0 0 1px var(--line);z-index:5;transition:box-shadow .15s ease,background-color .15s;border-radius:10px;will-change:transform}
+.drawer .dragging .doc-grip{cursor:grabbing}
+.drawer .drag-sib{transition:transform .18s cubic-bezier(.2,.7,.3,1)}
+.drawer .dragging.settle{transition:transform .17s cubic-bezier(.2,.7,.3,1),box-shadow .17s;box-shadow:none}
 </style>
 </head>
 <body>
@@ -572,9 +592,11 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
   <aside class="drawer" id="drawer" aria-label="회차 목록">
     <div class="dr-head"><h2 id="drT">내 소설</h2><div class="dr-act"><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
     <ul class="docs" id="docList"></ul>
+    <div class="del-bar edit-bar" id="editBar" hidden><button class="btn sm accent" id="editDone">완료</button></div>
     <div class="del-bar" id="delBar" hidden><span id="delN" aria-live="polite"></span><button class="btn sm" id="delCancel">취소</button><button class="btn sm del-go" id="delGo" disabled>삭제</button></div>
     <div class="dr-foot dr-foot2">
       <button class="btn ghost" id="openSet"><span data-ico="gear"></span>설정</button>
+      <button class="btn ghost" id="editBtn"><span data-ico="edit"></span>편집</button>
       <button class="btn ghost" id="delBtn"><span data-ico="trash"></span>삭제</button>
     </div>
   </aside>
@@ -942,7 +964,7 @@ var UI={sel:null,linking:false,hist:null,hmode:'diff'};
 var editingWork=null, migrated=false;
 
 var SEED_TEXT="지금 보고 있는 이 칸이 원고예요. 여기에 그냥 이어서 쓰면 돼요. 저장 버튼은 없어요. 쓰는 대로 저절로 저장돼요.\n\n왼쪽 위의 ☰ 버튼을 누르면 내 소설 목록이 열려요. 소설 안에 회차를 하나씩 쌓아 가는 구조예요. 소설을 새로 만들 때는 \"새 소설\"을, 회차를 더할 때는 소설 옆의 +를 누르면 돼요.\n\n위쪽에는 탭이 세 개 있어요.\n\n쓰기는 지금 이 화면이에요. 보드는 이야기를 정리하는 곳이고, 기록은 지난 글을 다시 꺼내 보는 곳이에요.\n\n이 글은 지우고 싶을 때 지워도 괜찮아요. 처음부터 마음 편히 시작하세요.\n\n자, 이제 플롯노트에서 첫 문장을 시작해 볼까요?";
-var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래의 \"기록 남기기\"를 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n소설이나 회차 옆의 ⬇ 버튼을 누르면 txt나 epub 파일로 받을 수 있어요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
+var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래 툴바의 시계 버튼(기록 남기기)을 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[편집]\n왼쪽 메뉴 맨 아래의 \"편집\"을 누르면 소설과 회차의 순서와 이름을 바꿀 수 있어요. 줄 왼쪽의 점을 잡고 끌거나, 줄을 꾹 누른 뒤 끌면 순서가 바뀌어요. 이름은 연필을 눌러 바꿔요. 다 했으면 \"완료\"를 누르세요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n소설이나 회차 옆의 ⬇ 버튼을 누르면 txt나 epub 파일로 받을 수 있어요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
 
 var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기에서 다르게 고쳤다면 어느 쪽 글을 쓸지 물어봐요. 고르지 않은 글도 기록에 남아요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
 
@@ -1617,115 +1639,190 @@ function addGuide(){
 }
 function openDrawer(o){
   if(!o&&DEL.on){DEL.on=false;DEL.docs={};DEL.works={};renderDrawer();}
+  if(!o&&EDIT.on) editOff();
   $('#drawer').classList.toggle('open',o);
   $('#scrim').hidden=!o;
 }
-function workDrag(ev,w,grip){
-  if(DEL.on||editingWork) return;
-  ev.preventDefault();
-  var li=grip.closest('li'), ul=li.parentNode, moved=false, sy=ev.clientY;
-  try{grip.setPointerCapture(ev.pointerId);}catch(_){}
-  li.classList.add('dragging');
-  Array.prototype.forEach.call(ul.children,function(x){if(x.getAttribute('data-w')===w.id)x.hidden=true;});
-  function wks(){return Array.prototype.filter.call(ul.children,function(x){return x.classList.contains('wk');});}
-  function nextWk(x){var n=x.nextElementSibling;while(n&&!n.classList.contains('wk'))n=n.nextElementSibling;return n;}
-  function move(m){
-    if(Math.abs(m.clientY-sy)>3) moved=true;
-    var list=wks(), y=m.clientY;
-    for(var i=0;i<list.length;i++){
-      var x=list[i]; if(x===li) continue;
-      var r=x.getBoundingClientRect(), mid=r.top+r.height/2, before=li.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_PRECEDING;
-      if(before&&y<mid){ul.insertBefore(li,x);break;}
-      if(!before&&y>mid){var nx=nextWk(x); if(nx&&nx!==li) ul.insertBefore(li,nx); else if(!nx) ul.appendChild(li);}
-    }
-  }
-  function up(){
-    window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up);
-    li.classList.remove('dragging');
-    var ids=wks().map(function(x){return x.getAttribute('data-wid');});
-    var old=liveWorks().map(function(x){return x.id;});
-    if(!moved||ids.join()===old.join()){renderDrawer();return;}
-    var now=Date.now();
-    ids.forEach(function(id,i){var x=S.works.find(function(q){return q.id===id;}); if(x&&x.pos!==i){x.pos=i;x.updated=now;persistWork(x);}});
-    renderDrawer(); toast('소설 순서를 바꿨어요');
-  }
-  window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+/* ---------- 편집 모드: 순서 바꾸기(손잡이는 바로, 줄은 0.5초 꾹), 이름 바꾸기(제목 누르기) ---------- */
+var EDIT={on:false}, RN=null, DRAG=null;
+function editOn(){ if(!liveWorks().length) return; DEL.on=false;DEL.docs={};DEL.works={}; EDIT.on=true; RN=null; renderDrawer(); }
+/* 이름을 고치는 중에 아래 버튼(이름 저장)을 누르면 이름만 저장하고 편집은 계속 */
+var doneRN=false;
+function editDonePress(){ doneRN=!!RN; }
+function editDoneClick(){ if(doneRN||RN){ doneRN=false; var i=$('.rn-in'); if(i) i.blur(); return; } editOff(); }
+function editOff(){ if(!EDIT.on) return; if(RN){ var i=$('.rn-in'); if(i) i.blur(); } EDIT.on=false; RN=null; renderDrawer(); }
+function editUI(){
+  var dr=$('#drawer'); if(!dr) return;
+  dr.classList.toggle('editing',EDIT.on);
+  $('#editBar').hidden=!EDIT.on;
+  if(EDIT.on) $('#drT').textContent='편집 중';
+  var eb=$('#editBtn'); if(eb) eb.disabled=!liveWorks().length;
 }
-function docDrag(ev,w,grip){
-  if(DEL.on) return;
-  ev.preventDefault();
-  var li=grip.closest('li'), ul=li.parentNode, moved=false, sy=ev.clientY;
-  try{grip.setPointerCapture(ev.pointerId);}catch(_){}
-  li.classList.add('dragging');
-  function sibs(){return Array.prototype.filter.call(ul.children,function(x){return x.getAttribute('data-w')===w.id;});}
-  function move(m){
-    if(Math.abs(m.clientY-sy)>3) moved=true;
-    var list=sibs(), y=m.clientY;
-    for(var i=0;i<list.length;i++){
-      var x=list[i]; if(x===li) continue;
-      var r=x.getBoundingClientRect(), mid=r.top+r.height/2, before=li.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_PRECEDING;
-      if(before&&y<mid){ul.insertBefore(li,x);break;}
-      if(!before&&y>mid){ul.insertBefore(li,x.nextSibling);}
+// 이름 바꾸기 입력칸 (소설·회차 공통)
+function rnInput(kind,obj){
+  var inp=h('input',{class:'rn-in'+(kind==='w'?' wk-in':' doc-in'),value:obj.title||'',maxlength:kind==='w'?'60':'80','aria-label':kind==='w'?'소설 제목':'회차 제목'});
+  var done=false;
+  function commit(save){
+    if(done) return; done=true; RN=null; var eb=$('#editDone'); if(eb) eb.textContent='완료';
+    var t=inp.value.trim();
+    if(save&&t!==(obj.title||'')&&(t||kind==='d')){
+      obj.title=t; obj.updated=Date.now();
+      if(kind==='w') persistWork(obj); else { persistDoc(obj); if(obj.id===S.activeId&&typeof ttl!=='undefined'&&ttl) ttl.value=t; }
     }
+    renderDrawer(); updateCrumb();
   }
+  inp.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ev.preventDefault();commit(true);} else if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();commit(false);} });
+  inp.addEventListener('blur',function(){commit(true);});
+  inp.addEventListener('focus',function(){ var b=$('#editDone'); if(b) b.textContent='이름 저장'; });
+  return inp;
+}
+// 줄을 0.5초 꾹 누르면 잡기(움직이면 스크롤로 보고 취소), 손잡이는 바로 잡기
+function pressRow(li,start){
+  li.addEventListener('pointerdown',function(ev){
+    if(!EDIT.on||RN||DRAG||ev.button>0) return;
+    if(ev.target.closest('.doc-grip,.rn-in,.wk-chev,.rn-btn')) return;
+    var sx=ev.clientX, sy=ev.clientY, t=setTimeout(function(){ off(); li._pressed=true; start(ev,sy); },500);
+    li.classList.add('pressing');
+    function mv(m){ if(Math.abs(m.clientX-sx)>8||Math.abs(m.clientY-sy)>8) off(); }
+    function off(){ clearTimeout(t); li.classList.remove('pressing'); window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',off); window.removeEventListener('pointercancel',off); }
+    window.addEventListener('pointermove',mv); window.addEventListener('pointerup',off); window.addEventListener('pointercancel',off);
+  });
+  li.addEventListener('click',function(ev){ if(li._pressed){ li._pressed=false; ev.stopPropagation(); ev.preventDefault(); } },true);
+  li.addEventListener('contextmenu',function(ev){ if(EDIT.on) ev.preventDefault(); });
+}
+/* 부드러운 순서 바꾸기: 잡은 줄은 손가락을 따라 떠서 움직이고, 다른 줄은 비켜난다. 놓으면 그 자리로 내려앉는다.
+   groups: [{key, els:[li...]}] (위에서부터), k: 잡은 묶음 번호 */
+function smoothDrag(sy,groups,k,commit){
+  var list=$('#docList'), s0=list.scrollTop;
+  groups.forEach(function(g){ var r0=g.els[0].getBoundingClientRect(), r1=g.els[g.els.length-1].getBoundingClientRect(); g.top=r0.top+s0; g.h=r1.bottom-r0.top; g.shift=0; });
+  var me=groups[k], H=me.h+2, target=k, lastY=sy, raf=0;
+  me.els.forEach(function(e){ e.classList.add('dragging'); });
+  groups.forEach(function(g,i){ if(i!==k) g.els.forEach(function(e){ e.classList.add('drag-sib'); }); });
+  try{ if(navigator.vibrate) navigator.vibrate(12); }catch(_){}
+  DRAG={};
+  function layout(){
+    var dy=lastY-sy+(list.scrollTop-s0);
+    me.els.forEach(function(e){ e.style.transform='translateY('+dy+'px) scale(1.02)'; });
+    var mid=me.top+me.h/2+dy; target=k;
+    groups.forEach(function(g,i){
+      if(i===k) return;
+      var gm=g.top+g.h/2, sh=0;
+      if(i>k&&mid>gm){ sh=-H; target=Math.max(target,i); }
+      if(i<k&&mid<gm){ sh=H; target=Math.min(target,i); }
+      if(sh!==g.shift){ g.shift=sh; g.els.forEach(function(e){ e.style.transform=sh?'translateY('+sh+'px)':''; }); }
+    });
+  }
+  function auto(){   // 목록 위·아래 끝에 닿으면 저절로 스크롤
+    raf=0; var r=list.getBoundingClientRect(), v=0;
+    if(lastY<r.top+40) v=-Math.ceil((r.top+40-lastY)/4); else if(lastY>r.bottom-40) v=Math.ceil((lastY-(r.bottom-40))/4);
+    if(v){ var b=list.scrollTop; list.scrollTop+=v; if(list.scrollTop!==b){ layout(); raf=requestAnimationFrame(auto); } }
+  }
+  function tm(e){ e.preventDefault(); }   // 잡은 뒤에는 화면이 스크롤되지 않게
+  function mv(m){ lastY=m.clientY; layout(); if(!raf) raf=requestAnimationFrame(auto); }
   function up(){
-    window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up);
-    li.classList.remove('dragging');
-    if(!moved) return;
-    var ids=sibs().map(function(x){return x.getAttribute('data-id');});
-    var old=workDocs(w.id).map(function(d){return d.id;});
-    if(ids.join()===old.join()){renderDrawer();return;}
-    w.docOrder=ids; w.updated=Date.now(); persistWork(w); renderDrawer(); toast('회차 순서를 바꿨어요');
+    window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up);
+    document.removeEventListener('touchmove',tm,{passive:false});
+    if(raf) cancelAnimationFrame(raf);
+    var off=0;
+    if(target>k) for(var i=k+1;i<=target;i++) off+=groups[i].h+2;
+    if(target<k) for(var j=target;j<k;j++) off-=groups[j].h+2;
+    me.els.forEach(function(e){ e.classList.add('settle'); e.style.transform='translateY('+(off-(list.scrollTop-s0))+'px)'; });
+    setTimeout(function(){
+      var order=groups.map(function(g){return g.key;}); var m=order.splice(k,1)[0]; order.splice(target,0,m);
+      DRAG=null; commit(order,target!==k);
+    },170);
   }
-  window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+  window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+  document.addEventListener('touchmove',tm,{passive:false});
+  layout();
+}
+function workDrag(ev,w,sy){
+  if(!EDIT.on||DRAG) return;
+  if(ev&&ev.preventDefault&&ev.type==='pointerdown') ev.preventDefault();
+  // 잡은 소설은 잠깐 접어서(회차 숨김) 다루기 쉽게
+  var ul=$('#docList');
+  $$('[data-w="'+w.id+'"]',ul).forEach(function(x){ x.hidden=true; });
+  var groups=[], cur0=null;
+  Array.prototype.forEach.call(ul.children,function(x){
+    if(x.hidden) return;
+    if(x.classList.contains('wk')){ cur0={key:x.getAttribute('data-wid'),els:[x]}; groups.push(cur0); }
+    else if(cur0) cur0.els.push(x);
+  });
+  var k=groups.findIndex(function(g){return g.key===w.id;});
+  smoothDrag(sy,groups,k,function(ids,changed){
+    if(changed){ var now=Date.now(); ids.forEach(function(id,i){var x=S.works.find(function(q){return q.id===id;}); if(x&&x.pos!==i){x.pos=i;x.updated=now;persistWork(x);}}); }
+    renderDrawer(); if(changed) toast('소설 순서를 바꿨어요');
+  });
+}
+function docDrag(ev,w,d,sy){
+  if(!EDIT.on||DRAG) return;
+  if(ev&&ev.preventDefault&&ev.type==='pointerdown') ev.preventDefault();
+  var ul=$('#docList');
+  var groups=$$('.doc[data-w="'+w.id+'"]',ul).map(function(x){return {key:x.getAttribute('data-id'),els:[x]};});
+  var k=groups.findIndex(function(g){return g.key===d.id;});
+  smoothDrag(sy,groups,k,function(ids,changed){
+    if(changed){ w.docOrder=ids; w.updated=Date.now(); persistWork(w); }
+    renderDrawer(); if(changed) toast('회차 순서를 바꿨어요');
+  });
+}
+function gripFor(label,fn){
+  var g=h('span',{class:'doc-grip','aria-label':label,title:label});
+  g.addEventListener('pointerdown',function(ev){ if(!EDIT.on) return; ev.preventDefault(); ev.stopPropagation(); fn(ev,ev.clientY); });
+  return g;
 }
 function renderDrawer(){
   var ul=$('#docList'); ul.textContent='';
-  var aw=curWork().id;
+  var aw=curWork().id, E=EDIT.on;
+  if(E&&!liveWorks().length) EDIT.on=E=false;
   liveWorks().forEach(function(w){
-    var docs=workDocs(w.id), coll=!!S.prefs.collapsed[w.id], main;
-    if(editingWork===w.id){
-      var inp=h('input',{class:'wk-in',value:w.title,maxlength:'60','aria-label':'소설 제목'});
-      inp.addEventListener('keydown',function(ev){
-        if(ev.key==='Enter'){ev.preventDefault();inp.blur();}
-        else if(ev.key==='Escape'){editingWork=null;renderDrawer();}
-      });
-      inp.addEventListener('blur',function(){
-        if(editingWork!==w.id) return;
-        editingWork=null;
-        var t=inp.value.trim();
-        if(t&&t!==w.title){w.title=t;w.updated=Date.now();persistWork(w);}
-        renderDrawer(); updateCrumb();
-      });
-      main=inp;
+    var docs=workDocs(w.id), coll=!!S.prefs.collapsed[w.id], main, li;
+    function toggle(){S.prefs.collapsed[w.id]=!coll;persistMeta();renderDrawer();}
+    if(E&&RN&&RN.kind==='w'&&RN.id===w.id) main=rnInput('w',w);
+    else if(E){
+      main=h('div',{class:'wk-main rn-t'},
+        h('span',{class:'wk-tx'},h('span',{class:'wk-t',text:w.title||'제목 없음'}),h('span',{class:'wk-m',text:workMeta(w)})));
     } else {
-      main=h('button',{class:'wk-main','aria-expanded':coll?'false':'true',onclick:function(){S.prefs.collapsed[w.id]=!coll;persistMeta();renderDrawer();}},
+      main=h('button',{class:'wk-main','aria-expanded':coll?'false':'true',onclick:toggle},
         ico(coll?'chevr':'chevd'),
         h('span',{class:'wk-tx'},h('span',{class:'wk-t',text:w.title||'제목 없음'}),h('span',{class:'wk-m',text:workMeta(w)})));
     }
-    var wg=h('span',{class:'doc-grip wk-grip','aria-label':'끌어서 소설 순서 바꾸기',title:'끌어서 소설 순서 바꾸기'});
-    wg.addEventListener('pointerdown',function(ev){workDrag(ev,w,wg);});
-    ul.append(delDecor('w',w.id,h('li',{class:'wk'+(w.id===aw?' on':''),'data-wid':w.id},wg,main,
-      h('button',{class:'wk-btn','aria-label':'이 소설에 새 회차 추가',onclick:function(){addDoc(w.id);}},ico('plus')),
-      h('button',{class:'wk-btn','aria-label':'소설 이름 바꾸기',onclick:function(){editingWork=w.id;renderDrawer();}},ico('edit')),
-      h('button',{class:'wk-btn','aria-label':'이 소설 내려받기',onclick:function(){openDl('work',w.id);}},ico('download')))));
+    if(E){
+      li=h('li',{class:'wk'+(w.id===aw?' on':''),'data-wid':w.id},
+        gripFor('끌어서 소설 순서 바꾸기',function(ev,y){workDrag(ev,w,y);}),
+        h('button',{class:'wk-chev','aria-expanded':coll?'false':'true','aria-label':coll?'펼치기':'접기',onclick:toggle},ico(coll?'chevr':'chevd')),
+        main,
+        (RN&&RN.kind==='w'&&RN.id===w.id)?null:h('button',{class:'wk-btn rn-btn','aria-label':'소설 이름 바꾸기',onclick:function(){RN={kind:'w',id:w.id};renderDrawer();}},ico('edit')));
+      pressRow(li,function(ev,y){workDrag(ev,w,y);});
+      ul.append(li);
+    } else {
+      ul.append(delDecor('w',w.id,h('li',{class:'wk'+(w.id===aw?' on':''),'data-wid':w.id},main,
+        h('button',{class:'wk-btn','aria-label':'이 소설에 새 회차 추가',onclick:function(){addDoc(w.id);}},ico('plus')),
+        h('button',{class:'wk-btn','aria-label':'이 소설 내려받기',onclick:function(){openDl('work',w.id);}},ico('download')))));
+    }
     if(!coll){
       if(!docs.length) ul.append(h('li',{class:'wk-empty','data-w':w.id,text:'아직 회차가 없어요. + 를 눌러 추가하세요.'}));
       docs.forEach(function(d){
-        var st=stats(d.text);
-        var dg=h('span',{class:'doc-grip','aria-label':'끌어서 순서 바꾸기',title:'끌어서 순서 바꾸기'});
-        dg.addEventListener('pointerdown',function(ev){docDrag(ev,w,dg);});
-        ul.append(delDecor('d',d.id,h('li',{class:'doc sub'+(d.id===S.activeId?' on':''),'data-id':d.id,'data-w':w.id},
-          dg,
-          h('button',{class:'doc-main',onclick:function(){if(DEL.on)toggleDoc(d.id);else openDoc(d.id);}},
-            h('span',{class:'doc-t',text:d.title||'제목 없음'}),
-            h('span',{class:'doc-m',text:NF.format(st.inc)+'자'+(d.example?' · 예시 원고':'')})),
-          h('button',{class:'doc-del','aria-label':'이 회차 내려받기',onclick:function(){openDl('doc',d.id);}},ico('download')))));
+        var st=stats(d.text), meta=NF.format(st.inc)+'자'+(d.example?' · 예시 원고':'');
+        if(E){
+          var dm=(RN&&RN.kind==='d'&&RN.id===d.id)?rnInput('d',d):
+            h('div',{class:'doc-main rn-t'},
+              h('span',{class:'doc-t',text:d.title||'제목 없음'}),h('span',{class:'doc-m',text:meta}));
+          var dl=h('li',{class:'doc sub'+(d.id===S.activeId?' on':''),'data-id':d.id,'data-w':w.id},
+            gripFor('끌어서 회차 순서 바꾸기',function(ev,y){docDrag(ev,w,d,y);}),dm,
+            (RN&&RN.kind==='d'&&RN.id===d.id)?null:h('button',{class:'doc-del rn-btn','aria-label':'회차 이름 바꾸기',onclick:function(){RN={kind:'d',id:d.id};renderDrawer();}},ico('edit')));
+          pressRow(dl,function(ev,y){docDrag(ev,w,d,y);});
+          ul.append(dl);
+        } else {
+          ul.append(delDecor('d',d.id,h('li',{class:'doc sub'+(d.id===S.activeId?' on':''),'data-id':d.id,'data-w':w.id},
+            h('button',{class:'doc-main',onclick:function(){if(DEL.on)toggleDoc(d.id);else openDoc(d.id);}},
+              h('span',{class:'doc-t',text:d.title||'제목 없음'}),h('span',{class:'doc-m',text:meta})),
+            h('button',{class:'doc-del','aria-label':'이 회차 내려받기',onclick:function(){openDl('doc',d.id);}},ico('download')))));
+        }
       });
     }
   });
-  updateTotal();
-  if(editingWork) requestAnimationFrame(function(){var i=$('.wk-in');if(i){i.focus();i.select();}});
+  updateTotal(); editUI();
+  if(RN) requestAnimationFrame(function(){var i=$('.rn-in');if(i){i.focus();i.select();}});
 }
 function updateRow(d){
   var li=$('.doc[data-id="'+d.id+'"]');
@@ -2852,8 +2949,11 @@ function bindOnce(){
   $('#trashX').addEventListener('click',closeTrash);
   $('#trashM').addEventListener('click',function(ev){if(ev.target===$('#trashM'))closeTrash();});
   $('#trashEmpty').addEventListener('click',function(ev){askDel(ev.currentTarget,emptyTrash,'전부 삭제할까요?');});
-  document.addEventListener('keydown',function(ev){if(ev.key==='Escape'){if(!$('#trashM').hidden)closeTrash();if(!$('#setM').hidden)closeSet();if(!$('#acctM').hidden)closeAcct();}});
-  $('#delBtn').addEventListener('click',function(){DEL.on=true;DEL.docs={};DEL.works={};renderDrawer();});
+  document.addEventListener('keydown',function(ev){if(ev.key==='Escape'){if(EDIT.on&&!RN&&$('#setM').hidden&&$('#trashM').hidden)editOff();if(!$('#trashM').hidden)closeTrash();if(!$('#setM').hidden)closeSet();if(!$('#acctM').hidden)closeAcct();}});
+  $('#delBtn').addEventListener('click',function(){EDIT.on=false;RN=null;DEL.on=true;DEL.docs={};DEL.works={};renderDrawer();});
+  $('#editBtn').addEventListener('click',editOn);
+  $('#editDone').addEventListener('pointerdown',editDonePress);
+  $('#editDone').addEventListener('click',editDoneClick);
   $('#delCancel').addEventListener('click',delOff);
   $('#delGo').addEventListener('click',function(ev){askDel(ev.currentTarget,doDelete,'정말 삭제할까요?');});
   $('#dlX').addEventListener('click',closeDl);
