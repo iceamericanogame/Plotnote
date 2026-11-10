@@ -564,6 +564,7 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .btn.danger:hover:not(:disabled),.btn.danger:active:not(:disabled),
 .del-go:hover:not(:disabled),.del-go:active:not(:disabled),
 .ib.arm,.ib.arm:hover,.doc-del.arm,.doc-del.arm:hover,.wk-btn.arm,.wk-btn.arm:hover{background:var(--danger);color:#FBFAF6;border-color:var(--danger)}
+.fpv{word-break:keep-all;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -667,8 +668,8 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
       <div class="seg set-seg" id="themeSeg" role="group" aria-label="화면 테마"><button data-theme-set="light" aria-pressed="false">라이트</button><button data-theme-set="dark" aria-pressed="false">다크</button><button data-theme-set="system" aria-pressed="true">시스템</button></div>
     </section>
     <section class="set-sec"><h3>글쓰기 글꼴</h3>
+      <div class="fpv" id="fontPv">안녕하세요, 플롯노트입니다. 오늘의 이야기를 시작해 볼까요?<br>Welcome to Plotnote. Shall we start today’s story?</div>
       <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="fpv" id="fontPv">가을 저녁, 서점 창가에 달빛이 내려앉았다. 문을 밀자 오래된 종이 냄새가 났다.</div>
       <p class="muted sm" style="margin:0">글쓰기 화면의 본문과 제목에 적용돼요. 글쓰기 화면 아래 툴바의 글꼴 버튼으로도 바꿀 수 있어요. 이 기기에 저장돼요.</p>
     </section>
     <section class="set-sec"><h3>백업</h3>
