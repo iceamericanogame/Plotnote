@@ -1132,6 +1132,7 @@ async function onToken(resp){
   setGuest(false);
   var gateUp=$('#gate')&&!$('#gate').hidden;
   if(gateUp) showGate('syncing');
+  if(firstTime) Y.fromLogin=true;   // 로그아웃 상태에서 한 삭제는 드라이브 글을 지우지 않게(applyRemote)
   var pr=syncNow(firstTime?'login':'reconnect',true);
   if(gateUp) Promise.resolve(pr).then(function(){hideGate();if(Y.state==='error'||Y.state==='offline')toast('드라이브와 아직 연결되지 않았어요. 글은 이 기기에 저장돼요');});
 }
@@ -1139,10 +1140,10 @@ function logout(wipe){
   try{if(A.tok&&window.google&&google.accounts.oauth2.revoke) google.accounts.oauth2.revoke(A.tok,function(){});}catch(_){}
   A={on:false,email:'',name:'',picture:'',tok:'',exp:0,since:0};
   try{localStorage.removeItem(AKEY);}catch(_){}
-  Y.ver={core:null,hist:null}; Y.rsig={core:'',hist:''}; Y.pending=null; Y.err='';
+  Y.ver={core:null,hist:null}; Y.rsig={core:'',hist:''}; Y.pending=null; Y.err=''; Y.askLeave=false; Y.leaving=false;
   clearTimeout(syncT); clearTimeout(syncMaxT); clearTimeout(histT); syncT=syncMaxT=histT=0;
   if(wipe){
-    S=normalize(seed()); S.fresh=true; S.tomb={}; delete S.owner; saveLSNow(); showAll(); toast('이 기기의 데이터를 삭제했어요. 드라이브에는 그대로 있어요');
+    S=normalize(seed()); S.fresh=true; S.tomb={}; delete S.owner; saveLSNow(); showAll(); toast('로그아웃했어요. 글은 드라이브에 그대로 있어요');
   }
   setY('off'); renderAcct(); renderAcctBtn(); refreshStatus();
 }
@@ -1255,12 +1256,14 @@ async function doSync(force){
     }
   }
   if(wrote) saveLS();
+  Y.fromLogin=false;
 }
 // 드라이브에서 받은 내용을 이 기기 데이터와 합친다 (항목별로 최종 수정 시각이 더 늦은 쪽이 이긴다)
 function applyRemote(rc,rh){
   var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId;
   var prevText=cur()?cur().text:'';
   var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length);
+  if(rc&&Y.fromLogin){ keepRemoteOnLogin(rc); }
   if(rc){
     var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
@@ -1297,6 +1300,18 @@ function refreshAfterRemote(prevActive,prevText){
 }
 function flushSync(){ if(A.on&&Date.now()<=A.exp&&navigator.onLine&&(syncT||histT||Y.state==='error')) syncNow('leave',true); }
 
+
+/* 로그인하는 순간(로그아웃 상태였다가)에는 드라이브가 기준:
+   로그아웃 상태에서 지우거나 휴지통에 넣은 것은 드라이브 글에 영향을 주지 않는다.
+   (로그아웃 상태에서 새로 쓴 글·고친 글은 그대로 합쳐서 올라간다) */
+function keepRemoteOnLogin(rc){
+  var rd={}, rw={};
+  (rc.docs||[]).forEach(function(d){rd[d.id]=d;}); (rc.works||[]).forEach(function(w){rw[w.id]=w;});
+  Object.keys(S.tomb||{}).forEach(function(id){ if(rd[id]||rw[id]) delete S.tomb[id]; });
+  S.docs=S.docs.filter(function(d){ var r=rd[d.id]; return !(r&&d.trashed&&!r.trashed); });
+  S.works=S.works.filter(function(w){ var r=rw[w.id]; return !(r&&w.trashed&&!r.trashed); });
+  // 지워진 소설 안의 회차가 남아 있으면 드라이브 소설로 이어지도록 그대로 둔다
+}
 /* ===== 충돌: 같은 회차를 두 기기에서 다르게 고쳤을 때 ===== */
 function confList(){
   if(!Array.isArray(S.conf)) S.conf=[];
@@ -1433,11 +1448,28 @@ function renderAcct(){
   var act=h('div',{class:'t-act'});
   if(Y.state==='reauth') act.append(h('button',{class:'btn accent',onclick:function(){requestToken(false);}},'다시 연결'));
   act.append(h('button',{class:'btn'+(Y.state==='reauth'?'':' accent'),disabled:Y.state==='busy',onclick:function(){syncNow('manual',true);}},'지금 동기화'));
-  act.append(h('button',{class:'btn',onclick:function(){logout(false);closeAcct();showGate('login');}},'로그아웃'));
+  act.append(h('button',{class:'btn',id:'logoutBtn',disabled:!!Y.leaving,onclick:startLogout},Y.leaving?'올리는 중…':'로그아웃'));
   box.append(act);
-  box.append(h('div',{class:'t-act'},h('button',{class:'btn sm danger-o',onclick:function(ev){askDel(ev.currentTarget,function(){logout(true);closeAcct();showGate('login');},'정말 삭제할까요?');}},'로그아웃하고 이 기기 데이터 삭제')));
-  box.append(h('p',{class:'muted sm',text:'공용 기기라면 마지막 버튼으로 이 기기에 남은 글을 지워 주세요. 드라이브에 있는 글은 지워지지 않아요.'}));
+  if(Y.askLeave){   // 드라이브에 못 올린 글이 남았을 때만 묻는다
+    box.append(h('div',{class:'callout err',text:'아직 드라이브에 안 올라간 글이 있어요. 지금 로그아웃하면 이 기기에서 사라져요.'}));
+    box.append(h('div',{class:'t-act'},
+      h('button',{class:'btn',onclick:function(){Y.askLeave=false;renderAcct();}},'취소'),
+      h('button',{class:'btn danger',id:'logoutForce',onclick:function(){Y.askLeave=false;finishLogout();}},'그래도 로그아웃')));
+  }
+  box.append(h('p',{class:'muted sm',text:'로그아웃하면 이 기기의 글은 지워지고, 드라이브에는 그대로 남아요.'}));
 }
+/* 로그아웃: 먼저 드라이브에 다 올리고(올릴 수 있으면), 이 기기의 그 계정 글을 지운다.
+   못 올린 글이 있으면 그때만 물어본다. */
+function unsynced(){ return !!S&&(sigCore(S)!==Y.rsig.core||sigHist(S)!==Y.rsig.hist); }
+async function startLogout(){
+  if(Y.leaving) return;
+  Y.askLeave=false; Y.leaving=true; renderAcct();
+  try{ if(navigator.onLine&&Date.now()<=A.exp) await syncNow('logout',true); }catch(_){}
+  Y.leaving=false;
+  if(unsynced()){ Y.askLeave=true; renderAcct(); return; }
+  finishLogout();
+}
+function finishLogout(){ logout(true); closeAcct(); showGate('login'); }
 
 /* ===== 로그인 화면 (앱 앞에 한 번 보여 주는 첫 화면) ===== */
 var GUEST_KEY='plotnote:guest';
@@ -2286,14 +2318,29 @@ function toggleLink(a,b,quiet){
 function endLink(){ if(!UI.linking) return; UI.linking=false; cv.classList.remove('linking'); syncBoardBar(); }
 document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'&&UI.linking&&!ev.defaultPrevented) endLink(); });
 function penC(){var p=S.prefs.pen;return (typeof p==='number'&&p>=0&&p<NCOLORS)?p:0;}
+/* 새 포스트잇 자리: 지금 보이는 화면 안에서 다른 포스트잇과 겹치지 않는 첫 빈자리(위→아래, 왼쪽→오른쪽).
+   빈자리가 없으면 화면 가운데에서 조금씩 비껴 놓는다. */
+function freeSpot(){
+  var z=zoom(), W=200, H=110, G=16, STEP=20;
+  var vx=bd.scrollLeft/z, vy=bd.scrollTop/z, vw=bd.clientWidth/z, vh=bd.clientHeight/z;
+  var rs=$$('.note',cv).map(function(e){return {x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight};});
+  function hit(x,y){ for(var i=0;i<rs.length;i++){var r=rs[i]; if(x<r.x+r.w+G&&x+W+G>r.x&&y<r.y+r.h+G&&y+H+G>r.y) return true;} return false; }
+  var x0=Math.max(0,vx+G), y0=Math.max(0,vy+G), x1=Math.min(CW-W,vx+vw-W-G), y1=Math.min(CH-H,vy+vh-H-G);
+  if(x1<x0) x1=x0; if(y1<y0) y1=y0;
+  for(var y=y0;y<=y1;y+=STEP) for(var x=x0;x<=x1;x+=STEP) if(!hit(x,y)) return {x:x,y:y};
+  // 화면 안에 빈자리가 없으면: 같은 폭 안에서 아래쪽으로 더 찾아보고, 찾으면 그 자리가 보이게 스크롤
+  for(var y2=y1+STEP;y2<=CH-H;y2+=STEP) for(var x2=x0;x2<=x1;x2+=STEP) if(!hit(x2,y2)) return {x:x2,y:y2,scroll:true};
+  return {x:vx+vw/2-W/2,y:vy+vh/3};
+}
 function addNote(x,y){
   var b0=curBoard();
-  if(x==null){var z0=zoom(); x=(bd.scrollLeft+bd.clientWidth/2)/z0-100+(Math.random()*40-20);y=(bd.scrollTop+bd.clientHeight/3)/z0+(Math.random()*40-20);}
+  var fp=null; if(x==null){fp=freeSpot(); x=fp.x; y=fp.y;}
   var n={id:uid(),x:Math.max(0,Math.min(CW-210,Math.round(x))),y:Math.max(0,Math.min(CH-90,Math.round(y))),c:penC(),t:''};
   b0.notes.push(n); persistBoard();
   var e=noteEl(n); cv.append(e); $('#bdEmpty').hidden=true;
   selectNote(n.id); autosize($('.nt',e)); drawLinks();
-  $('.nt',e).focus();
+  if(fp&&fp.scroll){ var z1=zoom(); bd.scrollTop=Math.max(0,n.y*z1-bd.clientHeight/3); }
+  $('.nt',e).focus({preventScroll:!!(fp&&fp.scroll)});
 }
 function bdelStart(){
   endLink(); if(UI.box) boxEnd(); UI.bdel={}; if(UI.sel) UI.bdel[UI.sel]=1; if(UI.msel){Object.keys(UI.msel).forEach(function(k){UI.bdel[k]=1;}); mselClear();}

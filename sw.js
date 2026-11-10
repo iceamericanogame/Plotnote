@@ -3,7 +3,7 @@
    - 아이콘 등 같은 사이트 파일: 저장본 우선.
    - 글꼴: 한 번 받은 건 저장해 두고 오프라인에서도 쓴다.
    - 구글 로그인·드라이브 요청은 건드리지 않는다(항상 인터넷으로). */
-var VERSION='cf1c100e40';
+var VERSION='f5fe3853de';
 var CORE='plotnote-core-'+VERSION, FONTS='plotnote-fonts-v1';
 var CORE_FILES=['./','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 
