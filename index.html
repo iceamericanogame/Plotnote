@@ -647,15 +647,9 @@ body.focus .f-marks{display:none}
 .save-fail .btn[hidden]{display:none}
 .save-fail .btn .ic{width:16px;height:16px}
 .save-fail.soft{background:#F7EBCF;color:#5E4512;border:1px solid #E8D29E}
-.save-fail.low .btn{background:#5E4512;color:#F7EBCF}
-.save-fail .sf-x{flex:none;background:none;border:0;color:inherit;padding:6px;margin-left:-6px;display:flex;cursor:pointer}
-.save-fail .sf-x[hidden]{display:none}
-.save-fail .sf-x .ic{width:18px;height:18px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .save-fail.soft{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}}
 :root[data-theme="dark"] .save-fail.soft{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .save-fail.low .btn{background:#F1E3BE;color:#3A2F14}}
-:root[data-theme="dark"] .save-fail.low .btn{background:#F1E3BE;color:#3A2F14}
-@media (max-width:600px){.sv-more{display:none}}
+:root[data-theme="dark"] @media (max-width:600px){.sv-more{display:none}}
 /* 설정 · 저장 공간 */
 .su{display:flex;flex-direction:column;gap:12px}
 .su-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;background:var(--surface)}
@@ -664,6 +658,7 @@ body.focus .f-marks{display:none}
 .su-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px;color:var(--ink-2)}
 .su-row b{color:var(--ink);font-size:14px;font-weight:600}
 .su-row b.su-ok{color:#4F7A5A}.su-row b.su-off{color:var(--ink-3)}
+.su-full{margin-left:auto;color:var(--danger);font-size:13.5px;font-weight:600}
 .su-warn{font-size:13px;color:#7A5A12;background:#F7EBCF;border:1px solid #E8D29E;border-radius:10px;padding:8px 10px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .su-row b.su-ok{color:#8DBB98}:root:not([data-theme="light"]) .su-warn{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}}
 :root[data-theme="dark"] .su-row b.su-ok{color:#8DBB98}:root[data-theme="dark"] .su-warn{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}
@@ -694,7 +689,8 @@ body.focus .f-marks{display:none}
       <div class="save" id="save" data-s="local" aria-live="polite" role="button" tabindex="0"><i class="dot"></i><span id="saveTxt">불러오는 중…</span></div>
       <button class="acct" id="acctBtn" aria-label="구글 로그인"></button>
     </header>
-    <div class="save-fail" id="saveFail" role="alert" hidden><span id="saveFailTxt"></span><button class="btn sm" id="saveFailBk"><span data-ico="download"></span>백업 받기</button><button class="sf-x" id="saveFailX" aria-label="닫기" hidden><span data-ico="x"></span></button></div>
+    <div class="save-fail" id="saveFail" role="alert" hidden><span id="saveFailTxt"></span><button class="btn sm" id="saveFailBk"><span data-ico="download"></span>백업 받기</button></div>
+    <div class="store-note" id="verBanner" hidden><span>새 버전이 나왔어요.</span><button id="verBtn">새로고침</button></div>
     <div class="store-note" id="reBanner" hidden><span id="reTxt">구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.</span><button id="reBtn">다시 연결</button></div>
     <div class="store-note" id="cfBanner" hidden><span id="cfTxt"></span><button id="cfOpen">확인하기</button></div>
     <nav class="tabs" role="tablist" aria-label="작업 화면">
@@ -977,6 +973,13 @@ function mergeCore(local,rem,opt){
     }
     over.push(loser); conf.push({loser:loser,winner:winner,mine:mine});
   });
+  // 다른 곳에서 완전히 지웠는데(휴지통 비우기) 이 기기에서 그 뒤로 고친 회차 → 버리지 않고 살릴 목록으로
+  var rescue=[];
+  (opt.dropLocal?[]:(local.docs||[])).forEach(function(x){
+    if(!x||!x.id||!tomb[x.id]||lt[x.id]||x.trashed||!String(x.text||'').trim()) return;
+    var u=x.updated||0, ed=opt.base?(opt.base[x.id]==null||u>opt.base[x.id]):(opt.since?u>opt.since:false);
+    if(ed) rescue.push({doc:x,work:(local.works||[]).find(function(w){return w.id===x.workId;})||null});
+  });
   var works=mergeById(lw,rem.works,tomb);
   var boards={}, rb=rem.boards||{};
   Object.keys(rb).forEach(function(k){if(!tomb[k]&&boardUsed(rb[k]))boards[k]=rb[k];});
@@ -988,7 +991,7 @@ function mergeCore(local,rem,opt){
     var mb=mergeBoard(l,r,{since:opt.since,nbase:opt.nbase?(opt.nbase[k]||{}):null});
     boards[k]=mb.board; mb.nconf.forEach(function(c){nconf.push(c);});
   });
-  return {docs:docs,works:works,boards:boards,tomb:tomb,over:over,conf:conf,nconf:nconf};
+  return {docs:docs,works:works,boards:boards,tomb:tomb,over:over,conf:conf,nconf:nconf,rescue:rescue};
 }
 function mergeHist(l,r,tomb){
   var m=new Map();
@@ -1188,8 +1191,9 @@ function saveLSLocked(){
 function saveLSNow(noPull){ if(!S||TAB.dead) return; clearTimeout(lsTimer); queueSave(!!noPull); }
 function queueSave(noPull){ SAVEQ=SAVEQ.then(function(){return doSave(noPull);}).catch(function(){}); return SAVEQ; }
 function queuePull(){ if(LSMODE){ lsTabPull(); return; } SAVEQ=SAVEQ.then(function(){return tabPullAsync();}).catch(function(){}); }
-function saveOk(){ lastLocal=Date.now(); var was=lsFail; lsFail=false; if(was) saveFailUI(); refreshStatus(); lowCheck(); }
-function saveBad(){ lsFail=true; saveFailUI(); refreshStatus(); }
+function setOpenSU(){ var m=$('#setM'); if(m&&!m.hidden) storageUse(); }   // 설정이 열려 있으면 저장 공간 칸도 바로 바꾼다
+function saveOk(){ lastLocal=Date.now(); var was=lsFail; lsFail=false; if(was){ saveFailUI(); setOpenSU(); } refreshStatus(); }
+function saveBad(){ var was=lsFail; lsFail=true; saveFailUI(); refreshStatus(); if(!was) setOpenSU(); }
 
 /* --- IndexedDB --- */
 function idbOpen(){
@@ -1364,6 +1368,7 @@ function tabMerge(R){
   var m=mergeCore(S,R,{base:TAB.base,nbase:TAB.nbase}), made=[];
   S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=m.tomb;
   (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});
+  var rs=rescueCopies(m.rescue);
   S.versions=mergeHist(S.versions,R.versions,S.tomb);
   if(R.fresh===false) S.fresh=false;
   if(!S.owner&&R.owner) S.owner=R.owner;
@@ -1371,9 +1376,9 @@ function tabMerge(R){
   migrated=false; S=normalize(S); bsnapAll();
   var cd=cur(), changed=before!==sigCore(S)+'#'+sigHist(S)||!cd||cd.id!==prevActive||cd.text!==ed.value||cd.title!==ttl.value;   // 시각이 같아도 글이 다르면 화면을 맞춘다
   var nm=m.nconf||[];
-  if(made.length||nm.length||sigCore(S)!==sigCore(R)||sigHist(S)!==sigHist(R)) markDirty();
+  if(made.length||rs.length||nm.length||sigCore(S)!==sigCore(R)||sigHist(S)!==sigHist(R)) markDirty();
   if((changed||nm.length)&&bootDone){ refreshAfterRemote(prevActive,prevText); renderConf(false); }
-  conflictToast(made,nm);
+  conflictToast(made,nm,rs);
 }
 function bindTabs(){
   window.addEventListener('storage',function(e){
@@ -1654,20 +1659,21 @@ async function doSync(force){
 function applyRemote(rc,rh){
   var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId, prevEpoch=S.epoch;
   var prevText=cur()?cur().text:'';
-  var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length), made=[], nmade=[];
+  var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length), made=[], nmade=[], rs=[];
   if(rc&&Y.fromLogin){ keepRemoteOnLogin(rc); }
   if(rc){
     var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
     (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});   // 두 기기가 다르게 고친 회차 → "제목_(자동저장)"으로 남김
+    rs=rescueCopies(m.rescue);
     nmade=m.nconf||[];
     if(dropLocal) S.fresh=false;
     if(dropLocal||Y.fromLogin) S.epoch=uid();   // 이 기기 글을 통째로 바꿨으니 다른 탭은 합치지 말고 새로 열게
   }
   S.versions=mergeHist(S.versions,rh?rh.versions:[],S.tomb);
   if(rc||rh){ migrated=false; S=normalize(S); if(migrated){migrated=false;markDirty();} }
-  if(before===sigCore(S)+'#'+sigHist(S)&&!nmade.length){ S.epoch=prevEpoch; return; }   // 바뀐 게 없으면 통째로 바꾼 것도 아님
-  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false); conflictToast(made,nmade);
+  if(before===sigCore(S)+'#'+sigHist(S)&&!nmade.length&&!rs.length){ S.epoch=prevEpoch; return; }   // 바뀐 게 없으면 통째로 바꾼 것도 아님
+  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false); conflictToast(made,nmade,rs);
 }
 
 function drawerBusy(){return !!RN||!!document.querySelector('#docList .rn-in')||!!DRAG;}
@@ -1740,8 +1746,31 @@ function conflictCopy(W,L){
   }
   return c;
 }
-function conflictToast(made,nmade){
-  made=made||[]; nmade=nmade||[];
+// 다른 곳에서 완전히 지운 회차를 이 기기에서 고쳤으면 "제목_(자동저장)"으로 살린다(소설까지 지워졌으면 소설도 "_(자동저장)"으로 새로)
+function rescueCopies(list){
+  var out=[];
+  (list||[]).forEach(function(r){
+    var L=r.doc, id='c'+String(L.id).slice(-8)+(L.updated||0).toString(36);
+    if(S.docs.some(function(d){return d.id===id;})||(S.tomb&&S.tomb[id])) return;
+    var now=Date.now(), w=S.works.find(function(x){return x.id===L.workId&&!x.trashed;});
+    if(!w){
+      var wid='cw'+String(L.workId).slice(-8);
+      w=S.works.find(function(x){return x.id===wid;});
+      if(w&&w.trashed){ w.trashed=0; w.updated=now; }
+      if(!w){ w={id:wid,title:String((r.work&&r.work.title)||'제목 없음').replace(/\s+$/,'')+'_(자동저장)',created:now,updated:now,docOrder:[]}; S.works.push(w); }
+    }
+    var c={id:id,workId:w.id,title:String(L.title||'제목 없음').replace(/\s+$/,'')+'_(자동저장)',text:L.text,created:L.created||now,updated:now};
+    S.docs.push(c); if(S.activeId===L.id) S.activeId=id;   // 쓰던 회차였으면 살린 회차를 그대로 보여 준다
+    var ord=(w.docOrder&&w.docOrder.length?w.docOrder.slice():workDocs(w.id).map(function(d){return d.id;})).filter(function(x){return x!==id;});
+    var lo=r.work&&r.work.docOrder?r.work.docOrder.indexOf(L.id):-1;   // 원래 있던 자리 근처에
+    ord.splice(lo<0||lo>ord.length?ord.length:lo,0,id); w.docOrder=ord; w.updated=now;
+    out.push(c);
+  });
+  return out;
+}
+function conflictToast(made,nmade,rs){
+  made=made||[]; nmade=nmade||[]; rs=rs||[];
+  if(rs.length&&!made.length){ toast(rs.length>1?'다른 곳에서 지운 회차 '+rs.length+'개를 이 기기에서 고쳐서 "_(자동저장)" 회차로 살려 두었어요':'다른 곳에서 지운 회차를 이 기기에서 고쳐서 「'+rs[0].title+'」로 살려 두었어요'); return; }
   if(made.length) toast(made.length>1?'같은 회차를 두 곳에서 고친 글 '+made.length+'개를 "_(자동저장)" 회차로 따로 남겼어요':'같은 회차를 두 곳에서 고쳐서, 다른 쪽 글을 「'+made[0].title+'」로 따로 남겼어요');
   else if(nmade.length) toast('같은 포스트잇을 두 곳에서 고쳐서, 다른 쪽 글을 옆에 새 포스트잇으로 남겼어요');
 }
@@ -1817,13 +1846,18 @@ function refreshStatus(){
   else if(Y.state==='error'){s='warn';t='동기화 오류 · 이 기기에 저장됨';tip=Y.err;}
   else if(syncT){s='busy';t='저장 대기 중…';}
   else{s='ok';t='드라이브 동기화됨 '+hm(Y.last||Date.now());}
-  box.setAttribute('data-s',s); txt.textContent=t; box.title=tip;
-  if(lsFail&&s==='ok') txt.append(h('span',{class:'sv-more',text:' · 기기 공간 부족'}));
+  // 바뀐 것만 건드린다(같은 값을 다시 넣어도 아주 긴 회차에서는 화면 전체를 다시 계산해서 멈칫함)
+  setA(box,'data-s',s); setA(box,'title',tip);
+  var more=lsFail&&s==='ok', tt=t+(more?' · 기기 공간 부족':'');
+  if(txt.textContent!==tt){ txt.textContent=t; if(more) txt.append(h('span',{class:'sv-more',text:' · 기기 공간 부족'})); }
   saveFailUI();
-  var fz=$('#fzSave'); if(fz){fz.setAttribute('data-s',s); fz.title=t;}
+  var fz=$('#fzSave'); if(fz){setA(fz,'data-s',s); setA(fz,'title',t);}
   var bn=$('#reBanner');
-  if(bn){ bn.hidden=!(A.on&&Y.state==='reauth'); var rt=$('#reTxt'); if(rt) rt.textContent=lsFail?'구글 연결이 끊겼어요.':'구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.'; }   // 기기에도 못 쓰는 중이면 '이 기기에 저장' 말을 빼요
+  if(bn){ setHid(bn,!(A.on&&Y.state==='reauth')); var rt=$('#reTxt'); if(rt) setTxt(rt,lsFail?'구글 연결이 끊겼어요.':'구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.'); }   // 기기에도 못 쓰는 중이면 '이 기기에 저장' 말을 빼요
 }
+function setA(el,k,v){ if(el.getAttribute(k)!==v) el.setAttribute(k,v); }
+function setTxt(el,v){ if(el.textContent!==v) el.textContent=v; }
+function setHid(el,v){ if(el.hidden!==v) el.hidden=v; }
 function renderAcctBtn(){
   var b=$('#acctBtn'); if(!b) return; b.textContent='';
   if(A.on){
@@ -2219,6 +2253,7 @@ function gripFor(label,fn){
 }
 function renderDrawer(){
   var ul=$('#docList'); ul.textContent='';
+  var nb=$('#newWork'); if(nb) nb.disabled=!!RN;   // 이름을 정하는 동안은 새 소설을 또 못 만든다(두 번 눌러 2개 생기지 않게)
   if(srActive()){renderSearch(ul);updateTotal();editUI();return;}
   var aw=curWork().id, E=EDIT.on;
   if(E&&!liveWorks().length) EDIT.on=E=false;
@@ -2307,6 +2342,7 @@ function addDoc(workId){
   $('#ttl').focus();
 }
 function addWork(){
+  if(RN) return;
   var w=newWorkObj('새 소설 '+(liveWorks().length+1)); S.works.push(w); persistWork(w);
   var d=newDoc('1화 ',w.id); S.docs.push(d); S.activeId=d.id; persistDoc(d); persistMeta();
   resetDocUi(); loadEditor(); RN={kind:'w',id:w.id}; renderDrawer(); setTab('write');   // 새 소설은 바로 이름을 고칠 수 있게
@@ -2415,7 +2451,6 @@ function bindSearch(){
     var b=$('#'+id); b.addEventListener('pointerdown',function(ev){ev.preventDefault();});
     b.addEventListener('click',function(){findGo(FIND.i+(id==='fUp'?-1:1));});
   });
-  ed.addEventListener('input',endFind);   // 글을 고치면 찾기는 끝
   $('#focusBtn').addEventListener('click',endFind);
 }
 var TRASH_DAYS=30;
@@ -2506,37 +2541,26 @@ function backupLbl(){
 // 로그인 중이고 드라이브에 올라가고 있는지(기기에 못 써도 글은 드라이브에 있음)
 function driveOk(){ return !!A.on&&Date.now()<=A.exp&&navigator.onLine&&(Y.state==='idle'||Y.state==='busy'); }
 // 기기에 저장이 안 될 때 맨 위 줄: 드라이브에 저장되는 중이면 노란 줄(버튼 없음), 아니면 빨간 줄 + 백업 받기
-// 저장은 되지만 기기 공간이 거의 찼을 때(로그인 안 함): 노란 줄 + 백업 받기 + 닫기(닫으면 하루 동안 안 뜸)
-var LOW=false, lowAt=0, LOWX=KEY+':lowx';
-function lowHidden(){ var t=0; try{t=+localStorage.getItem(LOWX)||0;}catch(_){} return Date.now()-t<864e5; }
-function lowClose(){ try{localStorage.setItem(LOWX,String(Date.now()));}catch(_){} saveFailUI(); }
-function lowCheck(force){
-  if(!force&&Date.now()-lowAt<6e5) return; lowAt=Date.now();
-  if(LSMODE||!navigator.storage||!navigator.storage.estimate) return;
-  navigator.storage.estimate().then(function(e){ var u=e.usage||0,q=e.quota||0; var l=!!q&&(q-u<300*1048576||u/q>0.9); if(l!==LOW){LOW=l;saveFailUI();} }).catch(function(){});
-}
 function saveFailUI(){
   var b=$('#saveFail'); if(!b) return;
-  var low=!lsFail&&LOW&&!A.on&&!lowHidden();
-  b.hidden=!lsFail&&!low; $('#saveFailX').hidden=!low; b.classList.toggle('low',low);
+  setHid(b,!lsFail);
   if(b.hidden) return;
-  var ok=!low&&driveOk(), t=$('#saveFailTxt'); t.textContent='';
-  if(low) t.textContent='기기 저장 공간이 거의 찼어요. 백업 파일을 받아 두세요.';
-  else if(ok) t.append(h('b',{text:'기기 저장 공간이 부족해서 이 기기에 저장하지 못하고 있어요.'}),document.createTextNode(' 구글 드라이브에는 정상적으로 저장되고 있어요.'));
+  var ok=driveOk(), t=$('#saveFailTxt'); t.textContent='';
+  if(ok) t.append(h('b',{text:'기기 저장 공간이 부족해서 이 기기에 저장하지 못하고 있어요.'}),document.createTextNode(' 구글 드라이브에는 정상적으로 저장되고 있어요.'));
   else t.append(h('b',{text:'기기 저장 공간이 꽉 차서 저장하지 못하고 있어요.'}),document.createTextNode(' 새로고침하거나 닫기 전에 백업 파일을 받아 두세요.'));
-  b.classList.toggle('soft',ok||low); $('#saveFailBk').hidden=ok;
+  b.classList.toggle('soft',ok); $('#saveFailBk').hidden=ok;
 }
-// 설정 · 저장 공간: 이 기기(플롯노트가 쓰는 공간·더 쓸 수 있는 공간) + 구글 드라이브(상태·파일 크기)
+// 설정 · 저장 공간: 이 기기(플롯노트가 쓰는 공간 + 저장이 안 되면 빨간 글씨) + 구글 드라이브(상태·파일 크기)
+// 브라우저는 기기의 진짜 남은 공간을 알려 주지 않아서(사생활 보호), 남은 공간 숫자는 보여 주지 않는다
 function fmtSize(n){ var mb=n/1048576; if(mb<0.1) return '0.1MB 미만'; if(mb<1024) return (mb<10?mb.toFixed(1):Math.round(mb))+'MB'; var gb=mb/1024; return (gb<10?gb.toFixed(1):Math.round(gb))+'GB'; }
 function storageUse(){
   var body=$('#stBody'); if(!body) return;
   function row(k,v,cls){ return h('div',{class:'su-row'},h('span',{text:k}),h('b',{class:cls||null,text:v})); }
   function draw(used,quota){
     body.textContent='';
-    var free=quota?Math.max(0,quota-used):null, low=free!=null&&(free<300*1048576||used/quota>0.9);
-    var dev=h('div',{class:'su-box'},h('div',{class:'su-h'},ico('device'),document.createTextNode('이 기기')),row('플롯노트가 쓰는 공간',fmtSize(used)));
-    if(free!=null) dev.append(row('더 쓸 수 있는 공간','약 '+fmtSize(free)));
-    if(low) dev.append(h('div',{class:'su-warn',text:'기기 저장 공간이 거의 찼어요. '+(A.on?'글은 구글 드라이브에도 저장되고 있어요.':'백업 파일을 받아 두세요.')}));
+    var hd=h('div',{class:'su-h'},ico('device'),document.createTextNode('이 기기'));
+    if(lsFail) hd.append(h('span',{class:'su-full',text:'지금 저장할 공간이 없어요'}));
+    var dev=h('div',{class:'su-box'},hd,row('플롯노트가 쓰는 공간',fmtSize(used)));
     var st, cls=null;
     if(!A.on){st='로그인하지 않음';cls='su-off';}
     else if(Y.state==='offline'){st='오프라인';cls='su-off';}
@@ -2634,12 +2658,38 @@ function undoImport(){
 var ed, ttl;
 function loadEditor(){
   endFind();
-  var d=cur(); ttl.value=d.title; ed.value=d.text; applyPrefs(); updateStats(); updateCrumb(); ed.parentNode.scrollTop=0; fitEd(); uhReset();
+  var d=cur(); ttl.value=d.title; ed.value=d.text; edMode(); applyPrefs(); updateStats(); updateCrumb(); ed.parentNode.scrollTop=0; fitEd(); uhReset();
+}
+/* 원고 칸에 글을 칠 때.
+   크롬은 원고 칸에 input 알림을 걸어 두기만 해도, 글이 아주 길면(10만 자 넘음) 한 글자마다 글 전체를 다시 계산해서 멈칫한다.
+   그래서 긴 회차일 때는 그 알림을 떼고, 키를 뗄 때·한글 조합이 끝날 때·붙여넣기 등과 0.4초마다 글이 바뀌었는지 직접 확인한다. */
+function edChanged(ev){
+  var d=cur(); if(!d) return;
+  endFind();   // 글을 고치면 찾기는 끝
+  d.text=ed.value; d.updated=Date.now(); delete d.example;
+  fitFast(ev); persistDoc(d); snapTick(d); uhPush(); idleUI(d); edMode();
+}
+function edBefore(ev){
+  if(ev.inputType==='historyUndo'){ev.preventDefault();uhGo(-1);}
+  else if(ev.inputType==='historyRedo'){ev.preventDefault();uhGo(1);}
+}
+var EDLONG=null, edPoll=0;
+function edCheck(){ var d=cur(); if(d&&ed.value!==d.text) edChanged(null); }
+function edSoon(){ setTimeout(edCheck,0); }
+function edMode(){
+  var l=ed.value.length>LONGED; if(l===EDLONG) return; EDLONG=l;
+  clearInterval(edPoll);
+  if(l){ ed.removeEventListener('input',edChanged); ed.removeEventListener('beforeinput',edBefore); edPoll=setInterval(edCheck,400); }
+  else { ed.addEventListener('input',edChanged); ed.addEventListener('beforeinput',edBefore); }
+}
+function edBind(){
+  ['keyup','compositionend','paste','cut','drop','blur'].forEach(function(t){ ed.addEventListener(t,edSoon); });
+  edMode();
 }
 /* ---------- 실행 취소 / 다시 실행 (버튼을 눌러도 키보드가 올라오지 않는다) ---------- */
 var UH={docId:null,stack:[],i:0,t:0};
 function uhReset(){var d=cur();UH.docId=d?d.id:null;UH.stack=[{t:ed.value}];UH.i=0;UH.t=0;uhBtns();}
-function uhBtns(){var u=$('#undo'),r=$('#redo');if(u)u.disabled=UH.i<=0;if(r)r.disabled=UH.i>=UH.stack.length-1;}
+function uhBtns(){var u=$('#undo'),r=$('#redo'),a=UH.i<=0,b=UH.i>=UH.stack.length-1;if(u&&u.disabled!==a)u.disabled=a;if(r&&r.disabled!==b)r.disabled=b;}   // 바뀔 때만 건드린다(아주 긴 회차에서 화면을 매번 다시 계산하지 않게)
 function uhPush(force){
   var d=cur(); if(!d) return;
   if(UH.docId!==d.id){uhReset();return;}
@@ -2657,7 +2707,7 @@ function uhGo(dir){
   var d=cur(); if(!d||UH.docId!==d.id) return;
   var n=UH.i+dir; if(n<0||n>=UH.stack.length) return;
   UH.i=n; var v=UH.stack[n].t; ed.value=v; UH.t=0;
-  ed.dispatchEvent(new Event('input')); uhBtns();
+  edChanged(null); uhBtns();
   try{ if(document.activeElement===ed) ed.setSelectionRange(v.length,v.length);}catch(_){}
 }
 function fitEd(){
@@ -2665,19 +2715,22 @@ function fitEd(){
   if(!sh||!ed.getClientRects().length){fitEd.pending=true;return;}   // 안 보이는 동안 재면 0이 되므로, 보일 때 다시 잰다
   fitEd.pending=false;
   var top=sh.scrollTop;
-  ed.style.height='auto'; ed.style.height=ed.scrollHeight+'px';
+  ed.style.height='auto'; ed.style.height=(ed.scrollHeight+(ed.value.length>LONGED?Math.round(sh.clientHeight*0.5):0))+'px';   // 아주 긴 회차는 아래에 여유 칸을 둔다
   sh.scrollTop=top;
   if(FIND.on) hlRender();
 }
 // 글자를 칠 때: 글이 칸을 넘칠 때만 늘린다(매번 줄였다 다시 재지 않음). 줄이는 건 잠깐 멈췄을 때 한 번에
+// 아주 긴 회차(10만 자 넘음)는 칠 때마다 높이를 재면(글 전체 줄바꿈을 다시 계산) 휴대폰에서 멈칫한다 → 손을 멈췄을 때만 잰다
+var LONGED=100000, longT=0;
 function fitFast(ev){
+  if(ed.value.length>LONGED){ clearTimeout(longT); longT=setTimeout(fitEd,1200); return; }
   var t=ev&&ev.inputType||'';
   if(/^delete|^history/.test(t)) return;
   if(ed.scrollHeight>ed.clientHeight+1) ed.style.height=ed.scrollHeight+'px';
 }
 // 글자 수·목록 숫자·칸 높이 맞추기는 0.25초 쉬었을 때 한 번만
 var idleT=0;
-function idleUI(d){ clearTimeout(idleT); idleT=setTimeout(function(){ updateStats(); if(d&&cur()===d) updateRow(d); },250); }
+function idleUI(d){ clearTimeout(idleT); idleT=setTimeout(function(){ updateStats(); if(d&&cur()===d) updateRow(d); },EDLONG?1200:250); }   // 아주 긴 회차는 손을 멈췄을 때만
 function fitWatch(){
   var w0=-1, raf=0;
   function soon(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(function(){ if(typeof ed!=='undefined'&&ed) fitEd(); }); }
@@ -3561,12 +3614,13 @@ function bindOnce(){
   $('#menuBtn').addEventListener('click',function(){openDrawer(true);});
   $('#scrim').addEventListener('click',function(){openDrawer(false);});
   $('#newWork').addEventListener('click',addWork);
+  ['pointerdown','mousedown'].forEach(function(t){ $('#newWork').addEventListener(t,function(ev){ if(RN) ev.preventDefault(); }); });   // 이름 정하는 중 다시 눌러도 이름 칸이 닫히지 않게
   $('#openTrash').addEventListener('click',openTrash);
   $('#openSet').addEventListener('click',openSet);
   $('#addGuide').addEventListener('click',addGuide);
   bindFocus(); bindSearch(); bindTabs();
   $('#bkOut').addEventListener('click',exportBackup);
-  $('#saveFailBk').addEventListener('click',exportBackup); $('#saveFailX').addEventListener('click',lowClose);
+  $('#saveFailBk').addEventListener('click',exportBackup);
   $('#bkIn').addEventListener('click',function(){$('#bkFile').click();});
   $('#bkFile').addEventListener('change',function(){readBackup(this.files&&this.files[0]);});
   $('#bkGo').addEventListener('click',importBackup);
@@ -3595,9 +3649,10 @@ function bindOnce(){
   $('#save').addEventListener('click',function(){
     if(!A.on) openAcct(); else if(Y.state==='reauth') requestToken(false); else if(Y.state==='error'||Y.state==='offline') openAcct(); else syncNow('manual',true);
   });
-  ed.addEventListener('input',function(ev){
-    var d=cur(); d.text=ed.value; d.updated=Date.now(); delete d.example;
-    fitFast(ev); persistDoc(d); snapTick(d); uhPush(); idleUI(d);
+  edBind();
+  ttl.addEventListener('keydown',function(ev){   // 제목에서 Enter → 본문 맨 앞으로(한글 조합 중 Enter는 조합만 끝냄)
+    if(ev.key!=='Enter'||ev.isComposing||ev.keyCode===229||ev.shiftKey||ev.altKey||ev.ctrlKey||ev.metaKey) return;
+    ev.preventDefault(); ed.focus(); try{ed.setSelectionRange(0,0);}catch(_){}
   });
   ttl.addEventListener('input',function(){
     var d=cur(); d.title=ttl.value; d.updated=Date.now(); delete d.example;
@@ -3608,10 +3663,6 @@ function bindOnce(){
     b.addEventListener('pointerdown',function(ev){ev.preventDefault();});   // 글칸의 포커스를 건드리지 않아 키보드가 새로 올라오지 않는다
     b.addEventListener('mousedown',function(ev){ev.preventDefault();});
     b.addEventListener('click',function(){uhGo(id==='undo'?-1:1);});
-  });
-  ed.addEventListener('beforeinput',function(ev){
-    if(ev.inputType==='historyUndo'){ev.preventDefault();uhGo(-1);}
-    else if(ev.inputType==='historyRedo'){ev.preventDefault();uhGo(1);}
   });
   ed.addEventListener('keydown',function(ev){
     if(!(ev.ctrlKey||ev.metaKey)) return; var k=ev.key.toLowerCase();
@@ -3719,8 +3770,7 @@ function boot2(ls){
   applyCur(); tabInit(); bindOnce(); showAll();
   // 브라우저가 저장 공간이 부족할 때 이 사이트 글을 지우지 않도록 요청(파이어폭스는 창이 떠서 하지 않음)
   try{ if(navigator.storage&&navigator.storage.persist&&!/Firefox/.test(navigator.userAgent)) navigator.storage.persisted().then(function(p){if(!p)navigator.storage.persist();}).catch(function(){}); }catch(_){}
-  lowCheck(true); document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') lowCheck(); });
-  bootDone=true; purgeExpired(); saveLSNow(); renderConf(false);
+  bootDone=true; purgeExpired(); saveLSNow(); renderConf(false); bindVer();
   renderAcctBtn(); initTc();
   if(A.on){ if(Date.now()>A.exp){setY('reauth');silentRenew('boot');} else {syncNow('launch',true);scheduleRenew();} }
   else if(!isGuest()) showGate('login');
@@ -3758,6 +3808,28 @@ boot();
   if(window.visualViewport) window.visualViewport.addEventListener('resize',function(){ if(!kbOpen()) soon(); });
   document.addEventListener('focusout',function(){ setTimeout(function(){ if(!document.activeElement||document.activeElement===document.body) reset(); },120); });
 })();
+/* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
+   열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
+   (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
+var APPVER='3c31983d35', verAt=0;
+function verCheck(force){
+  if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
+  if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
+  fetch('sw.js?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
+    var m=/VERSION='([0-9a-f]{6,})'/.exec(t||''); if(m&&m[1]!==APPVER) $('#verBanner').hidden=false;
+  }).catch(function(){});
+}
+function verReload(){
+  var b=$('#verBtn'); if(b) b.disabled=true;
+  var go=function(){ location.reload(); };
+  Promise.race([Promise.resolve(saveLSNow(true)).then(function(){return SAVEQ;}),new Promise(function(r){setTimeout(r,1500);})]).then(go,go);   // 쓰던 글을 먼저 저장하고 새로고침
+}
+function bindVer(){
+  $('#verBtn').addEventListener('click',verReload);
+  setTimeout(function(){verCheck(true);},8000);
+  setInterval(function(){verCheck(true);},30*60000);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') verCheck(false); });
+}
 })();
 </script>
 <!-- 구글 로그인 라이브러리 (Google Identity Services) -->
