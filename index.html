@@ -585,18 +585,74 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .drawer .dragging .doc-grip{cursor:grabbing}
 .drawer .drag-sib{transition:transform .18s cubic-bezier(.2,.7,.3,1)}
 .drawer .dragging.settle{transition:transform .17s cubic-bezier(.2,.7,.3,1),box-shadow .17s;box-shadow:none}
+/* 서랍 아래 줄: 아이콘 + 작은 글자 */
+.dr-foot2{gap:2px}
+.dr-foot2 .btn,.drawer .dr-foot2 .btn{flex-direction:column;gap:4px;height:auto;min-height:48px;padding:6px 0;font-size:11px;line-height:1}
+.dr-foot2 .btn .ic,.drawer .dr-foot2 .btn .ic{width:19px;height:19px}
+/* 받기 모드: 체크칸은 삭제 모드와 같게, 받기 버튼은 강조색 */
+#delGo.accent{background:var(--accent-soft);color:var(--accent-text);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+/* 받기 창: 모든 기기에서 가운데 팝업, 내용 목록은 스크롤 */
+.modal#dlM{align-items:center;padding:16px}
+#dlM .modal-panel{border-radius:16px;width:min(100%,26rem);max-height:calc(100% - 32px);padding-bottom:16px}
+.dl-sub{font-size:12.5px;color:var(--ink-2);margin:0 0 8px}
+.dl-list{margin:0;padding:4px 4px 4px 12px;list-style:none;background:var(--surface-2);border-radius:10px;font-size:13px;line-height:1.5;max-height:172px;overflow-y:auto;scrollbar-width:thin;overscroll-behavior:contain}
+.dl-list li{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.dl-list li:last-child{border-bottom:0}
+.dl-list .ic{flex:none;width:15px;height:15px;color:var(--ink-2)}
+.dl-list .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl-list .s{color:var(--ink-3);font-size:12px;padding-right:8px;white-space:nowrap}
+/* 휴대폰에서도 계정 창·충돌 창은 가운데 팝업 */
+.modal#acctM,.modal#cfM{align-items:center;padding:16px}
+#acctM .modal-panel,#cfM .modal-panel{border-radius:16px;max-height:calc(100% - 32px);padding-bottom:16px}
+/* 검색 */
+:root{--hl:#F3E3A6;--hl-cur:#E2B93B;--hl-mark:#D4AE3E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--hl:#5A4F2A;--hl-cur:#8E7424;--hl-mark:#B8962F}}
+:root[data-theme="dark"]{--hl:#5A4F2A;--hl-cur:#8E7424;--hl-mark:#B8962F}
+.sr-box{position:relative;flex:none}
+.sr-box>span[data-ico]{position:absolute;left:11px;top:50%;transform:translateY(-50%);display:grid;color:var(--ink-3);pointer-events:none}
+.sr-box>span[data-ico] .ic{width:16px;height:16px}
+.sr-in{width:100%;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font:16px var(--f-ui);padding:0 38px 0 34px;outline:none;-webkit-appearance:none;appearance:none}
+.sr-in::placeholder{color:var(--ink-3)}
+.sr-in:focus-visible{outline:none;box-shadow:none}
+.sr-in:focus,.sr-in:not(:placeholder-shown){border-color:var(--accent-line);background:var(--surface)}
+.sr-x{position:absolute;z-index:1;right:4px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:0;border-radius:8px;background:none;color:var(--ink-3);display:grid;place-items:center;padding:0}
+.sr-x .ic{width:16px;height:16px}
+.drawer.del .sr-box,.drawer.editing .sr-box{display:none}
+.sr-wk .wk-main{padding:8px 6px 4px}
+.doc-s{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;color:var(--ink-2);line-height:1.5;margin-top:2px;white-space:normal}
+mark.hl{background:var(--hl);color:inherit;border-radius:3px}
+/* 회차 안: 원고 뒤에 칠하는 층 */
+.sheet-scroll{position:relative}
+.sheet{position:relative}
+.ed-hl{position:absolute;margin:0;border:0;box-sizing:border-box;white-space:pre-wrap;color:transparent;pointer-events:none;z-index:0;overflow:hidden}
+.ed-hl mark.hl{color:transparent;border-radius:3px}
+.ed-hl mark.hl.cur{background:var(--hl-cur)}
+.finding .ed{position:relative;z-index:1}
+.f-marks{position:absolute;right:5px;width:12px;pointer-events:none;z-index:3}
+.f-marks i{position:absolute;right:0;width:12px;height:3px;border-radius:2px;background:var(--hl-mark)}
+.f-marks i.cur{background:var(--ink);z-index:1}
+.finding .wbar>.stats,.finding .wbar>.tools{display:none}
+.fbar{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
+.fbar[hidden]{display:none}
+.fn{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.fnav{display:flex;gap:6px}
+body.focus .f-marks{display:none}
+/* 휴대폰: 글자가 16px보다 작은 입력칸을 누르면 화면이 확대되므로 입력칸은 16px */
+@media (pointer:coarse){.wk-in,.doc-in{font-size:16px}}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <aside class="drawer" id="drawer" aria-label="회차 목록">
     <div class="dr-head"><h2 id="drT">내 소설</h2><div class="dr-act"><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
+    <div class="sr-box" id="srBox"><span data-ico="search"></span><input class="sr-in" id="srIn" type="text" enterkeyhint="search" placeholder="검색" aria-label="검색" autocomplete="off" spellcheck="false"><button class="sr-x" id="srX" aria-label="검색어 지우기" data-ico="x" hidden></button></div>
     <ul class="docs" id="docList"></ul>
     <div class="del-bar edit-bar" id="editBar" hidden><button class="btn sm accent" id="editDone">완료</button></div>
     <div class="del-bar" id="delBar" hidden><span id="delN" aria-live="polite"></span><button class="btn sm" id="delCancel">취소</button><button class="btn sm del-go" id="delGo" disabled>삭제</button></div>
     <div class="dr-foot dr-foot2">
       <button class="btn ghost" id="openSet"><span data-ico="gear"></span>설정</button>
       <button class="btn ghost" id="editBtn"><span data-ico="edit"></span>편집</button>
+      <button class="btn ghost" id="dlBtn"><span data-ico="download"></span>받기</button>
       <button class="btn ghost" id="delBtn"><span data-ico="trash"></span>삭제</button>
     </div>
   </aside>
@@ -637,6 +693,7 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
               <button class="ib" id="snapBtn" aria-label="기록 남기기" title="기록 남기기" data-ico="clock"></button>
               <button class="ib" id="focusBtn" aria-label="집중 모드" title="집중 모드" data-ico="focus"></button>
             </div>
+            <div class="fbar" id="fbar" hidden><button class="btn sm" id="fDone">완료</button><span class="fn" id="fN" aria-live="polite"></span><span class="fnav"><button class="ib" id="fUp" aria-label="이전" data-ico="up"></button><button class="ib" id="fDn" aria-label="다음" data-ico="down"></button></span></div>
           </div>
         </div>
       </section>
@@ -679,6 +736,7 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 <div class="modal" id="dlM" role="dialog" aria-modal="true" aria-labelledby="dlT" hidden>
   <div class="modal-panel">
     <div class="m-head"><h2 id="dlT">받기</h2><button class="ib" id="dlX" aria-label="닫기" data-ico="x"></button></div>
+    <div class="dl-info" id="dlInfo" hidden></div>
     <button class="dl-opt" id="dlTxt"><b>txt</b><small id="dlTxtD"></small></button>
     <button class="dl-opt" id="dlEpub"><b>epub</b><small id="dlEpubD"></small></button>
   </div>
@@ -940,9 +998,12 @@ var ICONS={
   box:'<rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 3"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  book:'<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19"/>',
+  file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
   fit:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   back:'<path d="M15 5l-7 7 7 7"/>',
   download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
   up:'<path d="M6 15l6-6 6 6"/>',
   down:'<path d="M6 9l6 6 6-6"/>',
   upload:'<path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>',
@@ -964,7 +1025,7 @@ var UI={sel:null,linking:false,hist:null,hmode:'diff'};
 var editingWork=null, migrated=false;
 
 var SEED_TEXT="지금 보고 있는 이 칸이 원고예요. 여기에 그냥 이어서 쓰면 돼요. 저장 버튼은 없어요. 쓰는 대로 저절로 저장돼요.\n\n왼쪽 위의 ☰ 버튼을 누르면 내 소설 목록이 열려요. 소설 안에 회차를 하나씩 쌓아 가는 구조예요. 소설을 새로 만들 때는 \"새 소설\"을, 회차를 더할 때는 소설 옆의 +를 누르면 돼요.\n\n위쪽에는 탭이 세 개 있어요.\n\n쓰기는 지금 이 화면이에요. 보드는 이야기를 정리하는 곳이고, 기록은 지난 글을 다시 꺼내 보는 곳이에요.\n\n이 글은 지우고 싶을 때 지워도 괜찮아요. 처음부터 마음 편히 시작하세요.\n\n자, 이제 플롯노트에서 첫 문장을 시작해 볼까요?";
-var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래 툴바의 시계 버튼(기록 남기기)을 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[편집]\n왼쪽 메뉴 맨 아래의 \"편집\"을 누르면 소설과 회차의 순서와 이름을 바꿀 수 있어요. 줄 왼쪽의 점을 잡고 끌거나, 줄을 꾹 누른 뒤 끌면 순서가 바뀌어요. 이름은 연필을 눌러 바꿔요. 다 했으면 \"완료\"를 누르세요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n소설이나 회차 옆의 ⬇ 버튼을 누르면 txt나 epub 파일로 받을 수 있어요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
+var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래 툴바의 시계 버튼(기록 남기기)을 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[편집]\n왼쪽 메뉴 맨 아래의 \"편집\"을 누르면 소설과 회차의 순서와 이름을 바꿀 수 있어요. 줄 왼쪽의 점을 잡고 끌거나, 줄을 꾹 누른 뒤 끌면 순서가 바뀌어요. 이름은 연필을 눌러 바꿔요. 다 했으면 \"완료\"를 누르세요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n왼쪽 메뉴 맨 아래의 \"받기\"를 누르고 받을 소설이나 회차를 고르세요. txt나 epub 파일로 받을 수 있어요. 소설을 고르면 합본 하나로, 회차를 고르면 회차마다 따로 받고, 여러 개는 압축 파일(zip) 하나에 담겨요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
 
 var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기에서 다르게 고쳤다면 어느 쪽 글을 쓸지 물어봐요. 고르지 않은 글도 기록에 남아요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
 
@@ -1555,7 +1616,7 @@ function setTab(t){
   if(t==='write') fitEd();
 }
 /* ---------- 삭제 모드 · 내려받기 ---------- */
-var DEL={on:false,docs:{},works:{}}, DLT=null;
+var DEL={on:false,docs:{},works:{},mode:'del'}, DLT=null;   // mode: 'del' 삭제 / 'dl' 받기
 function delOff(){DEL.on=false;DEL.docs={};DEL.works={};renderDrawer();}
 function workSelState(w){var ds=workDocs(w.id); if(!ds.length) return DEL.works[w.id]?2:0; var n=ds.filter(function(d){return DEL.docs[d.id];}).length; return n===0?0:(n===ds.length?2:1);}
 function toggleWork(id){
@@ -1585,12 +1646,15 @@ function delUI(){
   var dr=$('#drawer'); if(!dr) return;
   dr.classList.toggle('del',DEL.on);
   $('#delBar').hidden=!DEL.on;
-  $('#drT').textContent=DEL.on?'삭제할 것을 고르세요':'내 소설';
+  var isDl=DEL.mode==='dl';
+  dr.classList.toggle('dlmode',DEL.on&&isDl);
+  $('#drT').textContent=DEL.on?(isDl?'받을 것을 고르세요':'삭제할 것을 고르세요'):'내 소설';
+  var g=$('#delGo'); g.textContent=isDl?'받기':'삭제'; g.classList.toggle('del-go',!isDl); g.classList.toggle('accent',isDl);
   if(DEL.on){
     var wn=Object.keys(DEL.works).filter(function(k){return DEL.works[k];}).length, dn=Object.keys(DEL.docs).length;
     var parts=[]; if(wn)parts.push('소설 '+wn+'개'); if(dn)parts.push('회차 '+dn+'개');
-    $('#delN').textContent=parts.length?parts.join(' · ')+' 선택':'선택한 것이 없어요';
-    $('#delGo').disabled=!(wn||dn);
+    if(isDl){ var nf=dlFiles().length; $('#delN').textContent=nf?'파일 '+nf+'개'+(nf>1?' · zip 하나로':''):'선택한 것이 없어요'; $('#delGo').disabled=!nf; }
+    else { $('#delN').textContent=parts.length?parts.join(' · ')+' 선택':'선택한 것이 없어요'; $('#delGo').disabled=!(wn||dn); }
   }
 }
 function doDelete(){
@@ -1613,32 +1677,62 @@ function doDelete(){
     persistMeta();renderDrawer();setTab(S.prefs.tab);
   });
 }
-function openDl(kind,id){
-  var w=kind==='work'?S.works.find(function(x){return x.id===id;}):null, d=kind==='doc'?S.docs.find(function(x){return x.id===id;}):null;
-  if(!w&&!d) return; DLT={kind:kind,id:id};
-  $('#dlT').textContent='「'+(((w||d).title)||'제목 없음')+'」 받기';
-  $('#dlTxtD').textContent=kind==='work'?'모든 회차를 이어 붙인 텍스트 파일':'이 회차의 텍스트 파일';
-  $('#dlEpubD').textContent=kind==='work'?'전자책 앱에서 읽는 형식 · 회차별 목차':'전자책 앱에서 읽는 형식 · 한 회차짜리 책';
+/* ---------- 받기: 서랍에서 고른 것을 파일로 (소설 전체 = 합본 하나, 회차 낱개 = 파일 하나씩, 2개 이상이면 zip) ---------- */
+function dlFiles(){
+  var out=[];
+  liveWorks().forEach(function(w){
+    var ds=workDocs(w.id), on=ds.filter(function(d){return DEL.docs[d.id];});
+    if(ds.length&&on.length===ds.length) out.push({kind:'work',w:w,docs:ds});
+    else on.forEach(function(d){ out.push({kind:'doc',w:w,d:d}); });
+  });
+  return out;
+}
+function openDlPick(){
+  var fs=dlFiles(); if(!fs.length) return; DLT=fs;
+  var one=fs.length===1, f0=fs[0];
+  $('#dlT').textContent=one?'「'+((f0.kind==='work'?f0.w.title:f0.d.title)||'제목 없음')+'」 받기':'파일 '+fs.length+'개 받기';
+  var info=$('#dlInfo'); info.textContent='';
+  if(!one){
+    info.append(h('div',{class:'dl-sub',text:'압축 파일(zip) 하나에 담아요 · '+fs.length+'개'}));
+    var ul=h('ul',{class:'dl-list'});
+    fs.forEach(function(f){
+      var r=f.docs?(f.docs.length>1?firstNum(f.docs)+'~'+lastNum(f.docs)+' 합본':'합본'):'';
+      ul.append(h('li',null,ico(f.kind==='work'?'book':'file'),h('span',{class:'n',text:f.kind==='work'?(f.w.title||'제목 없음'):((f.w.title||'제목 없음')+' - '+(f.d.title||'제목 없음'))}),r?h('span',{class:'s',text:r}):null));
+    });
+    info.append(ul);
+  }
+  info.hidden=one;
+  $('#dlTxtD').textContent=one?(f0.kind==='work'?'모든 회차를 이어 붙인 텍스트 파일':'이 회차의 텍스트 파일'):'텍스트 파일';
+  $('#dlEpubD').textContent=one?(f0.kind==='work'?'전자책 앱에서 읽는 형식 · 회차별 목차':'전자책 앱에서 읽는 형식 · 한 회차짜리 책'):'전자책 앱에서 읽는 형식';
   $('#dlM').hidden=false;
 }
+function epNum(d,i){ var m=/^\s*(\d+)\s*화/.exec(d.title||''); return m?m[1]+'화':(i+1)+'화'; }
+function firstNum(ds){ return epNum(ds[0],0); }
+function lastNum(ds){ return epNum(ds[ds.length-1],ds.length-1); }
 function closeDl(){$('#dlM').hidden=true;DLT=null;}
-function exportItem(kind,id,fmt){
+function fileOf(f,fmt,author,prefix){
+  if(f.kind==='work'){
+    var w=f.w;
+    if(fmt==='txt') return {name:safeName(w.title)+' 합본.txt',text:'﻿'+f.docs.map(function(d){return (d.title||'제목 없음')+'\n\n'+d.text;}).join('\n\n────────────\n\n')};
+    var docs=f.docs.filter(function(d){return d.text&&d.text.trim();}); if(!docs.length) return null;
+    return {name:safeName(w.title)+'.epub',bytes:makeEpub(w,docs,author,true)};
+  }
+  var d=f.d, base=(prefix?safeName(f.w.title)+' - ':'')+safeName(d.title);
+  if(fmt==='txt') return {name:base+'.txt',text:'﻿'+(d.title?d.title+'\n\n':'')+d.text};
+  if(!d.text||!d.text.trim()) return null;
+  return {name:base+'.epub',bytes:makeEpub(f.w,[d],author,true)};
+}
+function runDl(fmt){
+  var fs=DLT; closeDl(); if(!fs||!fs.length) return;
   var author=(typeof A!=='undefined'&&A.name)||'';
-  if(kind==='doc'){
-    var d=S.docs.find(function(x){return x.id===id;}); if(!d) return;
-    if(fmt==='txt'){saveFile(safeName(d.title)+'.txt',(d.title?d.title+'\n\n':'')+d.text);return;}
-    var dw=S.works.find(function(x){return x.id===d.workId;});
-    if(!d.text||!d.text.trim()){toast('내보낼 글이 아직 없어요');return;}
-    saveFile(safeName(d.title)+'.epub',makeEpub(dw,[d],author));return;
-  }
-  var w=S.works.find(function(x){return x.id===id;}); if(!w) return;
-  if(fmt==='txt'){
-    var body=workDocs(w.id).map(function(d){return (d.title||'제목 없음')+'\n\n'+d.text;}).join('\n\n────────────\n\n');
-    saveFile(safeName(w.title)+' 합본.txt',body);return;
-  }
-  var docs=workDocs(w.id).filter(function(d){return d.text&&d.text.trim();});
-  if(!docs.length){toast('내보낼 글이 아직 없어요');return;}
-  saveFile(safeName(w.title)+'.epub',makeEpub(w,docs,author));
+  var multi=fs.length>1, files=[], skipped=0, used={};
+  fs.forEach(function(f){ var x=fileOf(f,fmt,author,multi); if(!x){skipped++;return;}
+    var nm=x.name, k=2; while(used[nm]){ nm=x.name.replace(/(\.\w+)$/,' ('+(k++)+')$1'); } used[nm]=1; x.name=nm; files.push(x); });
+  if(!files.length){ toast('내보낼 글이 아직 없어요'); return; }
+  if(files.length===1&&!multi){ var o=files[0]; saveFile(o.name,o.bytes?new Blob([o.bytes],{type:'application/epub+zip'}):new Blob([o.text],{type:'text/plain;charset=utf-8'})); }
+  else saveFile('플롯노트 '+d8(Date.now())+'.zip',zipStore(files,'application/zip'));
+  if(skipped) toast('글이 없는 회차 '+skipped+'개는 빼고 받았어요');
+  delOff();
 }
 function addGuide(){
   var g=seed(), wk=g.works[0], oldId=wk.id, nid=uid(), now=Date.now();
@@ -1766,7 +1860,7 @@ function workDrag(ev,w,sy){
   var k=groups.findIndex(function(g){return g.key===w.id;});
   smoothDrag(sy,groups,k,function(ids,changed){
     if(changed){ var now=Date.now(); ids.forEach(function(id,i){var x=S.works.find(function(q){return q.id===id;}); if(x&&x.pos!==i){x.pos=i;x.updated=now;persistWork(x);}}); }
-    renderDrawer(); if(changed) toast('소설 순서를 바꿨어요');
+    renderDrawer();
   });
 }
 function docDrag(ev,w,d,sy){
@@ -1777,7 +1871,7 @@ function docDrag(ev,w,d,sy){
   var k=groups.findIndex(function(g){return g.key===d.id;});
   smoothDrag(sy,groups,k,function(ids,changed){
     if(changed){ w.docOrder=ids; w.updated=Date.now(); persistWork(w); }
-    renderDrawer(); if(changed) toast('회차 순서를 바꿨어요');
+    renderDrawer();
   });
 }
 function gripFor(label,fn){
@@ -1787,6 +1881,7 @@ function gripFor(label,fn){
 }
 function renderDrawer(){
   var ul=$('#docList'); ul.textContent='';
+  if(srActive()){renderSearch(ul);updateTotal();editUI();return;}
   var aw=curWork().id, E=EDIT.on;
   if(E&&!liveWorks().length) EDIT.on=E=false;
   liveWorks().forEach(function(w){
@@ -1814,7 +1909,7 @@ function renderDrawer(){
     } else {
       ul.append(delDecor('w',w.id,h('li',{class:'wk'+(w.id===aw?' on':''),'data-wid':w.id},main,
         h('button',{class:'wk-btn','aria-label':'이 소설에 새 회차 추가',onclick:function(){addDoc(w.id);}},ico('plus')),
-        h('button',{class:'wk-btn','aria-label':'이 소설 내려받기',onclick:function(){openDl('work',w.id);}},ico('download')))));
+        null)));
     }
     if(!coll){
       if(!docs.length) ul.append(h('li',{class:'wk-empty','data-w':w.id,text:'아직 회차가 없어요. + 를 눌러 추가하세요.'}));
@@ -1832,8 +1927,7 @@ function renderDrawer(){
         } else {
           ul.append(delDecor('d',d.id,h('li',{class:'doc sub'+(d.id===S.activeId?' on':''),'data-id':d.id,'data-w':w.id},
             h('button',{class:'doc-main',onclick:function(){if(DEL.on)toggleDoc(d.id);else openDoc(d.id);}},
-              h('span',{class:'doc-t',text:d.title||'제목 없음'}),h('span',{class:'doc-m',text:meta})),
-            h('button',{class:'doc-del','aria-label':'이 회차 내려받기',onclick:function(){openDl('doc',d.id);}},ico('download')))));
+              h('span',{class:'doc-t',text:d.title||'제목 없음'}),h('span',{class:'doc-m',text:meta})))));
         }
       });
     }
@@ -1843,6 +1937,7 @@ function renderDrawer(){
 }
 function updateRow(d){
   var li=$('.doc[data-id="'+d.id+'"]');
+  if(srActive()){ clearTimeout(SR.t); SR.t=setTimeout(function(){if(srActive())renderDrawer();},400); updateTotal(); return; }   // 검색 결과는 쓰기를 잠깐 멈추면 다시 그린다
   if(li){
     $('.doc-t',li).textContent=d.title||'제목 없음';
     $('.doc-m',li).textContent=NF.format(stats(d.text).inc)+'자'+(d.example?' · 예시 원고':'');
@@ -1878,6 +1973,113 @@ function addWork(){
   var w=newWorkObj('새 소설 '+(liveWorks().length+1)); S.works.push(w); persistWork(w);
   var d=newDoc('1화 ',w.id); S.docs.push(d); S.activeId=d.id; persistDoc(d); persistMeta();
   resetDocUi(); loadEditor(); RN={kind:'w',id:w.id}; renderDrawer(); setTab('write');   // 새 소설은 바로 이름을 고칠 수 있게
+}
+/* ---------- 검색: 서랍 맨 위 칸 → 그 낱말이 있는 회차만, 회차를 열면 찾은 곳에 색 + 아래 바(완료 · n / m · ˄ ˅) + 오른쪽 위치 표시 ---------- */
+var SR={q:''}, FIND={on:false,q:'',i:0,n:0};
+function srQ(){return SR.q.trim().toLowerCase();}
+function srActive(){return !!srQ()&&!EDIT.on&&!DEL.on;}
+// 글에서 q가 나오는 자리(대소문자 무시)
+function srHits(text,q){var out=[],t=(text||'').toLowerCase(),i=0;if(!q)return out;while((i=t.indexOf(q,i))>=0){out.push(i);i+=q.length;}return out;}
+// 글 조각에 찾은 낱말을 칠한 노드들
+function srMarked(el,text,q){
+  var hs=srHits(text,q),p=0;
+  hs.forEach(function(i){if(i>p)el.append(document.createTextNode(text.slice(p,i)));el.append(h('mark',{class:'hl',text:text.slice(i,i+q.length)}));p=i+q.length;});
+  if(p<text.length)el.append(document.createTextNode(text.slice(p)));
+  return el;
+}
+function srSnippet(text,q){
+  var i=text.toLowerCase().indexOf(q); if(i<0) return null;
+  var a=Math.max(0,i-14), s=text.slice(a,i+q.length+70).replace(/\s*\n+\s*/g,' ');
+  return (a?'…':'')+s;
+}
+function renderSearch(ul){
+  var q=srQ(), any=false;
+  liveWorks().forEach(function(w){
+    var wm=(w.title||'').toLowerCase().indexOf(q)>=0;
+    var docs=workDocs(w.id).filter(function(d){return (d.title||'').toLowerCase().indexOf(q)>=0||(d.text||'').toLowerCase().indexOf(q)>=0;});
+    if(!docs.length&&wm) docs=workDocs(w.id);
+    if(!docs.length) return;
+    any=true;
+    ul.append(h('li',{class:'wk sr-wk','data-wid':w.id},
+      h('div',{class:'wk-main'},h('span',{class:'wk-tx'},srMarked(h('span',{class:'wk-t'}),w.title||'제목 없음',q)))));
+    docs.forEach(function(d){
+      var sn=srSnippet(d.text||'',q);
+      ul.append(h('li',{class:'doc sub'+(d.id===S.activeId?' on':''),'data-id':d.id,'data-w':w.id},
+        h('button',{class:'doc-main',onclick:function(){openFind(d.id);}},
+          srMarked(h('span',{class:'doc-t'}),d.title||'제목 없음',q),
+          sn?srMarked(h('span',{class:'doc-s'}),sn,q):h('span',{class:'doc-m',text:NF.format(stats(d.text).inc)+'자'}))));
+    });
+  });
+  if(!any) ul.append(h('li',{class:'wk-empty sr-none',text:'찾는 글이 없어요'}));
+}
+function setSearch(v){
+  SR.q=v; var i=$('#srIn'); if(i&&i.value!==v) i.value=v;
+  $('#srX').hidden=!v; renderDrawer();
+}
+/* 회차 안 찾기 */
+function openFind(id){
+  var q=srQ(); openDoc(id);
+  if(srHits(ed.value,q).length) startFind(q);
+}
+function startFind(q){
+  FIND.on=true; FIND.q=q; FIND.i=0;
+  $('#pane-write').classList.add('finding'); $('#fbar').hidden=false;
+  hlRender(); findGo(0);
+}
+function endFind(){
+  if(!FIND.on) return; FIND.on=false;
+  var p=$('#pane-write'); if(p) p.classList.remove('finding');
+  var b=$('#fbar'); if(b) b.hidden=true;
+  var m=$('#edHl'); if(m) m.remove();
+  var k=$('#fMarks'); if(k) k.remove();
+}
+// 원고 칸 뒤에 같은 글씨·같은 줄바꿈의 투명한 글을 깔고, 찾은 곳만 칠한다
+function hlRender(){
+  if(!FIND.on||!ed.getClientRects().length) return;
+  var sc=ed.parentNode, m=$('#edHl');
+  if(!m){m=h('div',{id:'edHl',class:'ed-hl','aria-hidden':'true'});sc.insertBefore(m,ed);}
+  var cs=getComputedStyle(ed);
+  ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','wordSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','textIndent','wordBreak','overflowWrap','tabSize','textAlign','fontFeatureSettings','fontKerning'].forEach(function(k){m.style[k]=cs[k];});
+  m.style.top=ed.offsetTop+'px'; m.style.left=ed.offsetLeft+'px'; m.style.width=ed.offsetWidth+'px'; m.style.height=ed.offsetHeight+'px';
+  m.textContent=''; srMarked(m,ed.value+'​',FIND.q);
+  var ms=$$('mark',m); FIND.n=ms.length; if(FIND.i>=FIND.n) FIND.i=Math.max(0,FIND.n-1);
+  ms.forEach(function(x,j){x.classList.toggle('cur',j===FIND.i);});
+  // 오른쪽 위치 표시
+  var sheet=sc.parentNode, k=$('#fMarks');
+  if(!k){k=h('div',{id:'fMarks',class:'f-marks','aria-hidden':'true'});sheet.append(k);}
+  var sr=sc.getBoundingClientRect(), hr=sheet.getBoundingClientRect(), H=sc.scrollHeight||1;
+  k.style.top=(sr.top-hr.top)+'px'; k.style.height=sc.clientHeight+'px'; k.textContent='';
+  ms.forEach(function(x,j){
+    var y=(x.getBoundingClientRect().top-sr.top+sc.scrollTop)/H*sc.clientHeight;
+    k.append(h('i',{class:j===FIND.i?'cur':null,style:'top:'+Math.max(0,Math.min(sc.clientHeight-3,y)).toFixed(1)+'px'}));
+  });
+  findBar();
+}
+function findBar(){
+  $('#fN').textContent=FIND.n?(FIND.i+1)+' / '+FIND.n:'0 / 0';
+  $('#fUp').disabled=$('#fDn').disabled=FIND.n<2;
+}
+function findGo(i){
+  if(!FIND.on||!FIND.n) {findBar();return;}
+  FIND.i=(i+FIND.n)%FIND.n;
+  var ms=$$('#edHl mark'), sc=ed.parentNode;
+  ms.forEach(function(x,j){x.classList.toggle('cur',j===FIND.i);});
+  $$('#fMarks i').forEach(function(x,j){x.classList.toggle('cur',j===FIND.i);});
+  var x=ms[FIND.i]; if(x){var sr=sc.getBoundingClientRect();sc.scrollTop=Math.max(0,x.getBoundingClientRect().top-sr.top+sc.scrollTop-sc.clientHeight/2);}
+  findBar();
+}
+function bindSearch(){
+  var inp=$('#srIn');
+  inp.addEventListener('input',function(){setSearch(inp.value);});
+  inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();inp.blur();}else if(ev.key==='Escape'&&inp.value){ev.stopPropagation();setSearch('');}});
+  $('#srX').addEventListener('click',function(){setSearch('');});
+  $('#fDone').addEventListener('click',endFind);
+  ['fUp','fDn'].forEach(function(id){
+    var b=$('#'+id); b.addEventListener('pointerdown',function(ev){ev.preventDefault();});
+    b.addEventListener('click',function(){findGo(FIND.i+(id==='fUp'?-1:1));});
+  });
+  ed.addEventListener('input',endFind);   // 글을 고치면 찾기는 끝
+  $('#focusBtn').addEventListener('click',endFind);
 }
 var TRASH_DAYS=30;
 function showDoc(d){S.activeId=d.id;resetDocUi();loadEditor();}
@@ -2046,6 +2248,7 @@ function undoImport(){
 /* ---------- 쓰기 ---------- */
 var ed, ttl;
 function loadEditor(){
+  endFind();
   var d=cur(); ttl.value=d.title; ed.value=d.text; applyPrefs(); updateStats(); updateCrumb(); ed.parentNode.scrollTop=0; fitEd(); uhReset();
 }
 /* ---------- 실행 취소 / 다시 실행 (버튼을 눌러도 키보드가 올라오지 않는다) ---------- */
@@ -2076,6 +2279,7 @@ function fitEd(){
   var top=sh.scrollTop;
   ed.style.height='auto'; ed.style.height=ed.scrollHeight+'px';
   sh.scrollTop=top;
+  if(FIND.on) hlRender();
 }
 function fitWatch(){
   var w0=-1, raf=0;
@@ -2425,8 +2629,9 @@ function drawLinks(){
 function toggleLink(a,b,quiet){
   var bd0=curBoard();
   var i=bd0.links.findIndex(function(l){return (l.a===a&&l.b===b)||(l.a===b&&l.b===a);});
-  if(i>=0){bd0.links.splice(i,1);if(!quiet)toast('연결을 끊었어요','되돌리기',function(){toggleLink(a,b,true);syncBoardBar();});}
-  else{bd0.links.push({a:a,b:b});if(!quiet)toast('연결했어요');}
+  // 연결·끊기는 선이 바로 생기고 사라지니 알림을 띄우지 않는다(되돌리려면 다시 탭)
+  if(i>=0){bd0.links.splice(i,1);}
+  else{bd0.links.push({a:a,b:b});}
   drawLinks(); persistBoard();
 }
 function endLink(){ if(!UI.linking) return; UI.linking=false; cv.classList.remove('linking'); syncBoardBar(); }
@@ -2883,11 +3088,13 @@ function crc32(u8){
   var c=0xFFFFFFFF; for(var i=0;i<u8.length;i++)c=t[(c^u8[i])&255]^(c>>>8);
   return (c^0xFFFFFFFF)>>>0;
 }
-function zipStore(files){
+function zipStore(files,type){ return new Blob(zipParts(files),{type:type||'application/epub+zip'}); }
+/* 압축 없이 묶기. 각 파일은 text(문자열) 또는 bytes(Uint8Array) */
+function zipParts(files){
   var enc=new TextEncoder(), parts=[], cd=[], off=0, d=new Date();
   var dt=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(), tm=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
   files.forEach(function(f){
-    var nm=enc.encode(f.name), data=enc.encode(f.text), crc=crc32(data), sz=data.length;
+    var nm=enc.encode(f.name), data=f.bytes||enc.encode(f.text), crc=crc32(data), sz=data.length;
     var lh=new DataView(new ArrayBuffer(30));
     lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
     lh.setUint16(10,tm,true); lh.setUint16(12,dt,true); lh.setUint32(14,crc,true); lh.setUint32(18,sz,true); lh.setUint32(22,sz,true); lh.setUint16(26,nm.length,true); lh.setUint16(28,0,true);
@@ -2901,10 +3108,11 @@ function zipStore(files){
   var cdSize=0; cd.forEach(function(x){cdSize+=x.length;});
   var end=new DataView(new ArrayBuffer(22));
   end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cdSize,true); end.setUint32(16,off,true);
-  return new Blob(parts.concat(cd,[new Uint8Array(end.buffer)]),{type:'application/epub+zip'});
+  return parts.concat(cd,[new Uint8Array(end.buffer)]);
 }
+function joinBytes(parts){ var n=0; parts.forEach(function(p){n+=p.length;}); var u=new Uint8Array(n), o=0; parts.forEach(function(p){u.set(p,o);o+=p.length;}); return u; }
 function xe(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function makeEpub(w,docs,author){
+function makeEpub(w,docs,author,asBytes){
   var X='<?xml version="1.0" encoding="UTF-8"?>\n', NS='xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="ko" xml:lang="ko"';
   var title=w.title||'제목 없음', id='urn:uuid:plotnote-'+w.id, mod=new Date().toISOString().replace(/\.\d+Z$/,'Z');
   function page(t,inner){return X+'<html '+NS+'><head><meta charset="utf-8"/><title>'+xe(t)+'</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body>'+inner+'</body></html>';}
@@ -2928,7 +3136,7 @@ function makeEpub(w,docs,author){
   var files=[{name:'mimetype',text:'application/epub+zip'},{name:'META-INF/container.xml',text:X+'<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>'},
     {name:'OEBPS/content.opf',text:opf},{name:'OEBPS/nav.xhtml',text:nav},{name:'OEBPS/toc.ncx',text:ncx},{name:'OEBPS/style.css',text:css},{name:'OEBPS/title.xhtml',text:titlePage}];
   chapters.forEach(function(c){files.push({name:'OEBPS/'+c.name,text:c.xml});});
-  return zipStore(files);
+  return asBytes?joinBytes(zipParts(files)):zipStore(files);
 }
 
 function safeName(s){return (s||'원고').replace(/[\\\/:*?"<>|\n\r]+/g,'-').trim().slice(0,60)||'원고';}
@@ -2938,7 +3146,7 @@ function saveFile(name,text){
     var blob=(typeof text==='string')?new Blob(['\ufeff'+text],{type:'text/plain;charset=utf-8'}):text;
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a'); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove();
-    setTimeout(function(){URL.revokeObjectURL(url);},4000); toast('파일로 받았어요');
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);
   }catch(e){toast('파일을 저장하지 못했어요');}
 }
 
@@ -2960,7 +3168,7 @@ function bindOnce(){
   $('#openTrash').addEventListener('click',openTrash);
   $('#openSet').addEventListener('click',openSet);
   $('#addGuide').addEventListener('click',addGuide);
-  bindFocus();
+  bindFocus(); bindSearch();
   $('#bkOut').addEventListener('click',exportBackup);
   $('#bkIn').addEventListener('click',function(){$('#bkFile').click();});
   $('#bkFile').addEventListener('change',function(){readBackup(this.files&&this.files[0]);});
@@ -2971,16 +3179,17 @@ function bindOnce(){
   $('#trashM').addEventListener('click',function(ev){if(ev.target===$('#trashM'))closeTrash();});
   $('#trashEmpty').addEventListener('click',function(ev){askDel(ev.currentTarget,emptyTrash,'전부 삭제할까요?');});
   document.addEventListener('keydown',function(ev){if(ev.key==='Escape'){if(EDIT.on&&!RN&&$('#setM').hidden&&$('#trashM').hidden)editOff();if(!$('#trashM').hidden)closeTrash();if(!$('#setM').hidden)closeSet();if(!$('#acctM').hidden)closeAcct();}});
-  $('#delBtn').addEventListener('click',function(){EDIT.on=false;RN=null;DEL.on=true;DEL.docs={};DEL.works={};renderDrawer();});
+  $('#delBtn').addEventListener('click',function(){EDIT.on=false;RN=null;DEL.mode='del';DEL.on=true;DEL.docs={};DEL.works={};renderDrawer();});
+  $('#dlBtn').addEventListener('click',function(){EDIT.on=false;RN=null;DEL.mode='dl';DEL.on=true;DEL.docs={};DEL.works={};renderDrawer();});
   $('#editBtn').addEventListener('click',editOn);
   $('#editDone').addEventListener('pointerdown',editDonePress);
   $('#editDone').addEventListener('click',editDoneClick);
   $('#delCancel').addEventListener('click',delOff);
-  $('#delGo').addEventListener('click',function(ev){askDel(ev.currentTarget,doDelete,'정말 삭제할까요?');});
+  $('#delGo').addEventListener('click',function(ev){ if(DEL.mode==='dl') openDlPick(); else askDel(ev.currentTarget,doDelete,'정말 삭제할까요?'); });
   $('#dlX').addEventListener('click',closeDl);
   $('#dlM').addEventListener('click',function(ev){if(ev.target===$('#dlM'))closeDl();});
-  $('#dlTxt').addEventListener('click',function(){var t=DLT;closeDl();if(t)exportItem(t.kind,t.id,'txt');});
-  $('#dlEpub').addEventListener('click',function(){var t=DLT;closeDl();if(t)exportItem(t.kind,t.id,'epub');});
+  $('#dlTxt').addEventListener('click',function(){runDl('txt');});
+  $('#dlEpub').addEventListener('click',function(){runDl('epub');});
   $('#acctBtn').addEventListener('click',openAcct);
   $('#acctX').addEventListener('click',closeAcct);
   $('#acctM').addEventListener('click',function(ev){if(ev.target===$('#acctM'))closeAcct();});
