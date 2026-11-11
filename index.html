@@ -1642,6 +1642,8 @@ async function doSync(force){
     var p=corePayload(), rs=sigCore(p), res;
     res=f.core?await updateFile(f.core.id,p):await createFile(FILE_CORE,p);
     f.core=res; Y.ver.core=res.version; Y.rsig.core=rs; wrote=true; S.fresh=false;
+    // 드라이브에 올린 글은 이 탭이 이미 아는 글: 같은 기기의 다른 탭이 그 글을 되돌려 줘도 충돌로 보지 않는다
+    (p.docs||[]).forEach(function(d){ if(d&&d.id&&TAB.base&&!(TAB.base[d.id]>=(d.updated||0))) TAB.base[d.id]=d.updated||0; });
   }
   if(sigHist(S)!==Y.rsig.hist||!f.hist){
     if(force||!f.hist||Date.now()-Y.histAt>HIST_EVERY){
@@ -1662,6 +1664,8 @@ function applyRemote(rc,rh){
   var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length), made=[], nmade=[], rs=[];
   if(rc&&Y.fromLogin){ keepRemoteOnLogin(rc); }
   if(rc){
+    // 마지막으로 드라이브와 맞춘 시각: 같은 기기의 다른 탭이 더 최근에 맞췄으면 그 시각을 쓴다(오래된 기준으로 내 글끼리 충돌로 보지 않게)
+    try{ var aa=JSON.parse(localStorage.getItem(AKEY)||'null'); if(aa&&aa.email===A.email&&aa.since>A.since) A.since=aa.since; }catch(_){}
     var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
     (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});   // 두 기기가 다르게 고친 회차 → "제목_(자동저장)"으로 남김
@@ -3811,7 +3815,7 @@ boot();
 /* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
    열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
    (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
-var APPVER='3c31983d35', verAt=0;
+var APPVER='147944621b', verAt=0;
 function verCheck(force){
   if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
   if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
