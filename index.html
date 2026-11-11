@@ -639,6 +639,34 @@ mark.hl{background:var(--hl);color:inherit;border-radius:3px}
 body.focus .f-marks{display:none}
 /* 휴대폰: 글자가 16px보다 작은 입력칸을 누르면 화면이 확대되므로 입력칸은 16px */
 @media (pointer:coarse){.wk-in,.doc-in{font-size:16px}}
+/* 기기에 저장이 안 될 때 맨 위 줄: 빨간 줄(어디에도 저장 안 됨) / 노란 줄(드라이브에는 저장 중) */
+.save-fail{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--danger);color:#FBFAF6;border-radius:12px;padding:9px 9px 9px 14px;margin:0 0 8px;font-size:14px;line-height:1.45}
+.save-fail[hidden]{display:none}
+.save-fail b{font-weight:600}
+.save-fail .btn{background:#FBFAF6;color:var(--danger);border-color:transparent;flex:none}
+.save-fail .btn[hidden]{display:none}
+.save-fail .btn .ic{width:16px;height:16px}
+.save-fail.soft{background:#F7EBCF;color:#5E4512;border:1px solid #E8D29E}
+.save-fail.low .btn{background:#5E4512;color:#F7EBCF}
+.save-fail .sf-x{flex:none;background:none;border:0;color:inherit;padding:6px;margin-left:-6px;display:flex;cursor:pointer}
+.save-fail .sf-x[hidden]{display:none}
+.save-fail .sf-x .ic{width:18px;height:18px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .save-fail.soft{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}}
+:root[data-theme="dark"] .save-fail.soft{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .save-fail.low .btn{background:#F1E3BE;color:#3A2F14}}
+:root[data-theme="dark"] .save-fail.low .btn{background:#F1E3BE;color:#3A2F14}
+@media (max-width:600px){.sv-more{display:none}}
+/* 설정 · 저장 공간 */
+.su{display:flex;flex-direction:column;gap:12px}
+.su-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;background:var(--surface)}
+.su-h{display:flex;align-items:center;gap:7px;font-weight:600;font-size:14.5px}
+.su-h .ic{width:16px;height:16px;color:var(--ink-2)}
+.su-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.su-row b{color:var(--ink);font-size:14px;font-weight:600}
+.su-row b.su-ok{color:#4F7A5A}.su-row b.su-off{color:var(--ink-3)}
+.su-warn{font-size:13px;color:#7A5A12;background:#F7EBCF;border:1px solid #E8D29E;border-radius:10px;padding:8px 10px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .su-row b.su-ok{color:#8DBB98}:root:not([data-theme="light"]) .su-warn{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}}
+:root[data-theme="dark"] .su-row b.su-ok{color:#8DBB98}:root[data-theme="dark"] .su-warn{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}
 </style>
 </head>
 <body>
@@ -666,7 +694,8 @@ body.focus .f-marks{display:none}
       <div class="save" id="save" data-s="local" aria-live="polite" role="button" tabindex="0"><i class="dot"></i><span id="saveTxt">불러오는 중…</span></div>
       <button class="acct" id="acctBtn" aria-label="구글 로그인"></button>
     </header>
-    <div class="store-note" id="reBanner" hidden><span>구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.</span><button id="reBtn">다시 연결</button></div>
+    <div class="save-fail" id="saveFail" role="alert" hidden><span id="saveFailTxt"></span><button class="btn sm" id="saveFailBk"><span data-ico="download"></span>백업 받기</button><button class="sf-x" id="saveFailX" aria-label="닫기" hidden><span data-ico="x"></span></button></div>
+    <div class="store-note" id="reBanner" hidden><span id="reTxt">구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.</span><button id="reBtn">다시 연결</button></div>
     <div class="store-note" id="cfBanner" hidden><span id="cfTxt"></span><button id="cfOpen">확인하기</button></div>
     <nav class="tabs" role="tablist" aria-label="작업 화면">
       <button class="tab" role="tab" id="tab-write" data-tab="write" aria-selected="true">쓰기</button>
@@ -751,6 +780,7 @@ body.focus .f-marks{display:none}
       <div class="fpv" id="fontPv">안녕하세요, 플롯노트입니다. 오늘의 이야기를 시작해 볼까요?<br>Welcome to Plotnote. Shall we start today’s story?</div>
       <button class="fsel" id="fontSel" data-fmenu aria-haspopup="listbox" aria-expanded="false"><span id="fontSelL">노토 세리프</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
     </section>
+    <section class="set-sec" id="stSec"><h3>저장 공간</h3><div class="su" id="stBody"></div></section>
     <section class="set-sec"><h3>백업</h3>
       <div class="bk-row"><button class="btn" id="bkOut"><span data-ico="download"></span>백업 파일 받기</button><button class="btn" id="bkIn"><span data-ico="upload"></span>백업 파일 불러오기</button></div>
       <input type="file" id="bkFile" accept=".json,application/json" hidden>
@@ -898,6 +928,39 @@ function mergeById(l,r,tomb,onOver){
   return Array.from(m.values()).sort(function(a,b){return (a.created||0)-(b.created||0)||(a.id<b.id?-1:1);});
 }
 function boardUsed(b){return !!b&&Array.isArray(b.notes)&&(b.notes.length>0||(b.updated||0)>0||(b.links&&b.links.length>0));}
+/* 보드 합치기: 포스트잇·선 하나하나 단위. n.u = 그 포스트잇을 마지막으로 고친 시각, gone/lgone = 지운 포스트잇·선과 지운 시각.
+   같은 포스트잇을 양쪽에서 따로 고쳤으면(opt.nbase: 탭끼리 기준 / opt.since: 기기끼리 기준) 최근 글은 그 자리에, 다른 글은 옆에 새 포스트잇으로 */
+function lkey(x){return [x.a,x.b].sort().join('|');}
+function mergeBoard(l,r,opt){
+  opt=opt||{}; l=l||{}; r=r||{};
+  function mx(a,b){var o={};[a||{},b||{}].forEach(function(m){Object.keys(m).forEach(function(k){if(!(o[k]>=m[k]))o[k]=m[k];});});return o;}
+  var gone=mx(l.gone,r.gone), lg=mx(l.lgone,r.lgone), lu=l.updated||0, ru=r.updated||0;
+  var lm={}, rm={}, ids=[], seen={}, notes=[], nconf=[];
+  (l.notes||[]).forEach(function(n){if(n&&n.id){lm[n.id]=n;if(!seen[n.id]){seen[n.id]=1;ids.push(n.id);}}});
+  (r.notes||[]).forEach(function(n){if(n&&n.id){rm[n.id]=n;if(!seen[n.id]){seen[n.id]=1;ids.push(n.id);}}});
+  ids.forEach(function(id){
+    var a=lm[id], b=rm[id], ua=a?(a.u||lu):0, ub=b?(b.u||ru):0, w, lo, uw=Math.max(ua,ub), ul;
+    if(a&&b){ if(ua>=ub){w=a;lo=b;ul=ub;} else {w=b;lo=a;ul=ua;} } else w=a||b;
+    if(gone[id]&&gone[id]>=uw) return;   // 마지막으로 고친 뒤에 지움
+    notes.push(w);
+    if(lo&&lo.t!==w.t&&String(lo.t||'').trim()){
+      var bs=opt.nbase?opt.nbase[id]:null, both=(ua===ub)||(opt.nbase?(bs!=null&&ul>bs):(opt.since?ul>opt.since:false));
+      if(both){
+        var cid='n'+String(id).slice(-8)+ul.toString(36);
+        if(!lm[cid]&&!rm[cid]&&!gone[cid]){ var cp=Object.assign({},lo,{id:cid,x:(lo.x||0)+28,y:(lo.y||0)+28,u:ul}); notes.push(cp); nconf.push(cp); }
+      }
+    }
+  });
+  var keep={}; notes.forEach(function(n){keep[n.id]=1;});
+  var lnk={}, links=[];
+  (l.links||[]).concat(r.links||[]).forEach(function(x){
+    if(!x||!keep[x.a]||!keep[x.b]) return; var k=lkey(x), u=x.u||0;
+    if(lg[k]&&lg[k]>=(u||Math.max(lu,ru))&&!(u>lg[k])) return;
+    if(lnk[k]){ if((lnk[k].u||0)<u) lnk[k].u=u; return; }
+    lnk[k]=Object.assign({},x); links.push(lnk[k]);
+  });
+  return {board:{notes:notes,links:links,updated:Math.max(lu,ru),gone:gone,lgone:lg},nconf:nconf};
+}
 function mergeCore(local,rem,opt){
   opt=opt||{}; local=local||{}; rem=rem||{};
   var tomb=Object.assign({},rem.tomb||{}), lt=local.tomb||{};
@@ -907,19 +970,25 @@ function mergeCore(local,rem,opt){
   var docs=mergeById(ld,rem.docs,tomb,function(loser,winner,mine){
     // 두 기기가 마지막 동기화 뒤에 서로 다르게 고쳤다면, 진 쪽 글은 반드시 기록으로 남기고 충돌로 알린다
     if(!(loser.text&&loser.text!==winner.text)) return;
-    if(opt.base){ var b=opt.base[loser.id]; if(b==null||(loser.updated||0)<=b) return; }   // 탭끼리: 마지막으로 본 뒤에 고친 글만 충돌
-    else if(opt.since&&(loser.updated||0)<=opt.since) return;   // 이미 한 번 받아 본 글이면 충돌이 아님
+    var tie=(loser.updated||0)===(winner.updated||0);   // 같은 순간에 서로 다르게 고침 → 언제나 충돌
+    if(!tie){
+      if(opt.base){ var b=opt.base[loser.id]; if(b==null||(loser.updated||0)<=b) return; }   // 탭끼리: 마지막으로 본 뒤에 고친 글만 충돌
+      else if(opt.since&&(loser.updated||0)<=opt.since) return;   // 이미 한 번 받아 본 글이면 충돌이 아님
+    }
     over.push(loser); conf.push({loser:loser,winner:winner,mine:mine});
   });
   var works=mergeById(lw,rem.works,tomb);
   var boards={}, rb=rem.boards||{};
   Object.keys(rb).forEach(function(k){if(!tomb[k]&&boardUsed(rb[k]))boards[k]=rb[k];});
+  var nconf=[];
   Object.keys(lb).forEach(function(k){
     var l=lb[k]; if(tomb[k]||!boardUsed(l)) return;
     var r=boards[k];
-    if(!r||(l.updated||0)>(r.updated||0)) boards[k]=l;
+    if(!r||r===l){ boards[k]=l; return; }
+    var mb=mergeBoard(l,r,{since:opt.since,nbase:opt.nbase?(opt.nbase[k]||{}):null});
+    boards[k]=mb.board; mb.nconf.forEach(function(c){nconf.push(c);});
   });
-  return {docs:docs,works:works,boards:boards,tomb:tomb,over:over,conf:conf};
+  return {docs:docs,works:works,boards:boards,tomb:tomb,over:over,conf:conf,nconf:nconf};
 }
 function mergeHist(l,r,tomb){
   var m=new Map();
@@ -1004,6 +1073,8 @@ var ICONS={
   fit:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   back:'<path d="M15 5l-7 7 7 7"/>',
   download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+  device:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/>',
+  cloud:'<path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
   up:'<path d="M6 15l6-6 6 6"/>',
   down:'<path d="M6 9l6 6 6-6"/>',
@@ -1028,7 +1099,7 @@ var editingWork=null, migrated=false;
 var SEED_TEXT="지금 보고 있는 이 칸이 원고예요. 여기에 그냥 이어서 쓰면 돼요. 저장 버튼은 없어요. 쓰는 대로 저절로 저장돼요.\n\n왼쪽 위의 ☰ 버튼을 누르면 내 소설 목록이 열려요. 소설 안에 회차를 하나씩 쌓아 가는 구조예요. 소설을 새로 만들 때는 \"새 소설\"을, 회차를 더할 때는 소설 옆의 +를 누르면 돼요.\n\n위쪽에는 탭이 세 개 있어요.\n\n쓰기는 지금 이 화면이에요. 보드는 이야기를 정리하는 곳이고, 기록은 지난 글을 다시 꺼내 보는 곳이에요.\n\n이 글은 지우고 싶을 때 지워도 괜찮아요. 처음부터 마음 편히 시작하세요.\n\n자, 이제 플롯노트에서 첫 문장을 시작해 볼까요?";
 var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래 툴바의 시계 버튼(기록 남기기)을 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[편집]\n왼쪽 메뉴 맨 아래의 \"편집\"을 누르면 소설과 회차의 순서와 이름을 바꿀 수 있어요. 줄 왼쪽의 점을 잡고 끌거나, 줄을 꾹 누른 뒤 끌면 순서가 바뀌어요. 이름은 연필을 눌러 바꿔요. 다 했으면 \"완료\"를 누르세요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n왼쪽 메뉴 맨 아래의 \"받기\"를 누르고 받을 소설이나 회차를 고르세요. txt나 epub 파일로 받을 수 있어요. 소설을 고르면 합본 하나로, 회차를 고르면 회차마다 따로 받고, 여러 개는 압축 파일(zip) 하나에 담겨요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
 
-var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기나 두 탭에서 따로 고쳤다면, 더 최근에 고친 글은 그 회차에 두고 다른 글은 바로 아래 「회차 이름(1)」 회차로 따로 남겨요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
+var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기나 두 탭에서 따로 고쳤다면, 더 최근에 고친 글은 그 회차에 두고 다른 글은 바로 아래 「회차 이름_(자동저장)」 회차로 따로 남겨요. 포스트잇도 같아서, 다른 쪽 글은 바로 옆에 새 포스트잇으로 남겨요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
 var SEED_TEXT3_OLD="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기에서 다르게 고쳤다면 어느 쪽 글을 쓸지 물어봐요. 고르지 않은 글도 기록에 남아요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
 
 function newDoc(title,workId){var now=Date.now();return {id:uid(),workId:workId,title:title||'',text:'',created:now,updated:now};}
@@ -1096,79 +1167,247 @@ function workDocs(id){
     ds=ds.map(function(d,i){return {d:d,i:i};}).sort(function(a,b){var p=ix[a.d.id],q=ix[b.d.id];p=p==null?1e9+a.i:p;q=q==null?1e9+b.i:q;return p-q;}).map(function(x){return x.d;}); }
   return ds;
 }
-function workChars(id){var n=0;workDocs(id).forEach(function(d){n+=stats(d.text).inc;});return n;}
+// 회차 글자 수는 글이 바뀌었을 때만 다시 센다(회차가 많아도 글자를 칠 때 느려지지 않게)
+var STC={};
+function docStats(d){var n=(d.text||'').length, c=STC[d.id]; if(c&&c.u===d.updated&&c.n===n) return c.s; var s=stats(d.text); STC[d.id]={u:d.updated,n:n,s:s}; return s;}
+function workChars(id){var n=0;workDocs(id).forEach(function(d){n+=docStats(d).inc;});return n;}
 function workMeta(w){return NF.format(workChars(w.id))+'자';}
 function updateCrumb(){var c=$('#crumb');if(c)c.textContent=curWork().title;}
 function lastVer(docId){for(var i=S.versions.length-1;i>=0;i--){if(S.versions[i].docId===docId)return S.versions[i];}return null;}
 
-/* ---------- 저장: 이 기기(항상) + 구글 드라이브(로그인했을 때) ---------- */
-var lsTimer=0;
-function saveLS(){clearTimeout(lsTimer);lsTimer=setTimeout(saveLSNow,350);}
-function saveLSNow(noPull){
-  if(!S||TAB.dead) return;
-  if(!noPull){ tabPull(); if(TAB.dead) return; }   // 다른 탭이 그 사이 저장했으면 먼저 합친 뒤에 쓴다(덮어쓰지 않게)
-  var ok=false;
-  try{localStorage.setItem(KEY,JSON.stringify(S));ok=true;}
-  catch(e){try{var lite=Object.assign({},S,{versions:S.versions.slice(-30)});localStorage.setItem(KEY,JSON.stringify(lite));ok=true;}catch(_){}}
-  if(ok){ lastLocal=Date.now(); lsFail=false; var r=uid(); try{localStorage.setItem(REVKEY,r);}catch(_){} TAB.rev=r; TAB.epoch=S.epoch; tabBase(S); }
-  else lsFail=true;
-  refreshStatus();
+/* ---------- 저장: 이 기기(IndexedDB, 안 되는 브라우저는 localStorage) + 구글 드라이브(로그인했을 때) ----------
+   IndexedDB에는 회차·기록·보드를 하나씩 따로 저장하고, 바뀐 것만 다시 쓴다.
+   (예전 localStorage 한 칸은 약 500만 자에서 꽉 차고, 글자를 칠 때마다 전체를 다시 써서 느렸다) */
+var lsTimer=0, DB=null, LSMODE=false, SAVED={}, SAVEQ=Promise.resolve(), FULLNEXT=false, STORE='kv', CURKEY=KEY+':cur';
+function saveLS(){clearTimeout(lsTimer);lsTimer=setTimeout(saveLSLocked,350);}
+// 여러 탭이 거의 같은 순간에 저장해도 '읽고 합치고 쓰기'가 겹치지 않게 차례로 한다
+function saveLSLocked(){
+  if(navigator.locks&&navigator.locks.request){ try{ navigator.locks.request('plotnote-ls',function(){return queueSave(false);}); return; }catch(_){} }
+  queueSave(false);
 }
+function saveLSNow(noPull){ if(!S||TAB.dead) return; clearTimeout(lsTimer); queueSave(!!noPull); }
+function queueSave(noPull){ SAVEQ=SAVEQ.then(function(){return doSave(noPull);}).catch(function(){}); return SAVEQ; }
+function queuePull(){ if(LSMODE){ lsTabPull(); return; } SAVEQ=SAVEQ.then(function(){return tabPullAsync();}).catch(function(){}); }
+function saveOk(){ lastLocal=Date.now(); var was=lsFail; lsFail=false; if(was) saveFailUI(); refreshStatus(); lowCheck(); }
+function saveBad(){ lsFail=true; saveFailUI(); refreshStatus(); }
+
+/* --- IndexedDB --- */
+function idbOpen(){
+  return new Promise(function(res,rej){
+    if(!window.indexedDB) return rej(new Error('noidb'));
+    var q, done=false, t=setTimeout(function(){if(!done){done=true;rej(new Error('timeout'));}},5000);
+    try{ q=indexedDB.open(KEY,1); }catch(e){ clearTimeout(t); return rej(e); }
+    q.onupgradeneeded=function(){ q.result.createObjectStore(STORE); };
+    q.onsuccess=function(){ if(done){try{q.result.close();}catch(_){}return;} done=true; clearTimeout(t); var db=q.result; db.onversionchange=function(){try{db.close();}catch(_){}}; res(db); };
+    q.onerror=function(){ if(!done){done=true;clearTimeout(t);rej(q.error);} };
+  });
+}
+function idbLoadAll(){
+  return new Promise(function(res,rej){
+    var tx; try{ tx=DB.transaction(STORE,'readonly'); }catch(e){ return rej(e); }
+    var st=tx.objectStore(STORE), keys=null, vals=null;
+    st.getAllKeys().onsuccess=function(e){keys=e.target.result;};
+    st.getAll().onsuccess=function(e){vals=e.target.result;};
+    tx.oncomplete=function(){
+      var core=null, docs=[], vers=[], boards={}, saved={};
+      (keys||[]).forEach(function(k,i){
+        var v=vals[i];
+        if(k==='core'){core=v;saved.core=JSON.stringify(v);}
+        else if(k.indexOf('d:')===0){docs.push(v);saved[k]=JSON.stringify(v);}
+        else if(k.indexOf('v:')===0){vers.push(v);saved[k]=1;}
+        else if(k.indexOf('b:')===0){boards[k.slice(2)]=v;saved[k]=JSON.stringify(v);}
+      });
+      if(!core) return res(null);
+      docs.sort(function(a,b){return (a.created||0)-(b.created||0)||(a.id<b.id?-1:1);});
+      vers.sort(function(a,b){return (a.t||0)-(b.t||0)||(a.id<b.id?-1:1);});
+      res({state:Object.assign({},core,{docs:docs,versions:vers,boards:boards}),saved:saved});
+    };
+    tx.onerror=tx.onabort=function(){rej(tx.error||new Error('read'));};
+  });
+}
+// 지금 상태를 저장 칸들로 나누고, 마지막으로 쓴 것(SAVED)과 다른 것만 고른다
+function diffRecords(st,full){
+  var puts=[], dels=[], now={}, core=Object.assign({},st);
+  delete core.docs; delete core.versions; delete core.boards;
+  var cs=JSON.stringify(core); now.core=cs; if(full||SAVED.core!==cs) puts.push(['core',core]);
+  (st.docs||[]).forEach(function(d){var k='d:'+d.id, x=JSON.stringify(d); now[k]=x; if(full||SAVED[k]!==x) puts.push([k,d]);});
+  (st.versions||[]).forEach(function(v){var k='v:'+v.id; now[k]=1; if(full||!SAVED[k]) puts.push([k,v]);});   // 기록은 한 번 생기면 바뀌지 않는다
+  Object.keys(st.boards||{}).forEach(function(b){var k='b:'+b, x=JSON.stringify(st.boards[b]); now[k]=x; if(full||SAVED[k]!==x) puts.push([k,st.boards[b]]);});
+  if(!full) Object.keys(SAVED).forEach(function(k){if(!(k in now)) dels.push(k);});
+  return {puts:puts,dels:dels,now:now};
+}
+function idbWrite(r,full){
+  return new Promise(function(res){
+    var tx; try{ tx=DB.transaction(STORE,'readwrite'); }catch(e){ return res(false); }
+    var st=tx.objectStore(STORE);
+    try{
+      if(full) st.clear();
+      r.dels.forEach(function(k){st.delete(k);});
+      r.puts.forEach(function(p){st.put(p[1],p[0]);});
+    }catch(e){ try{tx.abort();}catch(_){} return res(false); }
+    tx.oncomplete=function(){res(true);};
+    tx.onerror=function(ev){ if(ev&&ev.preventDefault) ev.preventDefault(); };
+    tx.onabort=function(){res(false);};   // 저장 공간이 꽉 찬 경우 등
+  });
+}
+function afterWrite(r){
+  FULLNEXT=false; SAVED=r.now; clearCur();
+  var rv=uid(); try{localStorage.setItem(REVKEY,rv);}catch(_){} TAB.rev=rv; TAB.epoch=S.epoch; tabBase(S); bsnapAll();
+}
+async function doSave(noPull){
+  if(!S||TAB.dead) return;
+  if(LSMODE){ lsSaveNow(noPull); return; }
+  if(!noPull&&tabRevNow()!==TAB.rev){ await tabPullAsync(); if(TAB.dead) return; }   // 다른 탭이 그 사이 저장했으면 먼저 합친다
+  var full=FULLNEXT||S.epoch!==TAB.epoch;   // 글을 통째로 바꿈(로그아웃 등) → 저장 칸을 비우고 새로 쓴다
+  var r=diffRecords(S,full);
+  if(!full&&!r.puts.length&&!r.dels.length){ saveOk(); return; }
+  var ok=await idbWrite(r,full);
+  // 꽉 찼을 때: 옛 기록 지우기를 먼저 따로 끝내 공간을 만든 뒤 다시 쓴다
+  if(!ok&&!full&&r.dels.length&&await idbWrite({dels:r.dels,puts:[]},false)) ok=await idbWrite({dels:[],puts:r.puts},false);
+  if(!ok){ saveBad(); return; }
+  afterWrite(r); saveOk();
+}
+// 탭을 떠나거나 닫을 때: 기다리지 않고 바로 쓰기 시작한다(바뀐 칸만). 지금 회차는 작은 칸에도 따로 남겨 둔다
+function saveLeaving(){
+  if(!S||TAB.dead) return;
+  clearTimeout(lsTimer);
+  if(LSMODE){ lsSaveNow(true); return; }
+  if(!DB) return;
+  var full=FULLNEXT||S.epoch!==TAB.epoch, r=diffRecords(S,full);
+  if(!full&&!r.puts.length&&!r.dels.length) return;
+  keepCur();
+  idbWrite(r,full).then(function(ok){ if(ok) afterWrite(r); });
+}
+function keepCur(){ var d=cur(); if(!d||d.text.length>1500000) return; try{localStorage.setItem(CURKEY,JSON.stringify({id:d.id,title:d.title,text:d.text,updated:d.updated||0,epoch:S.epoch}));}catch(_){} }
+function clearCur(){ try{localStorage.removeItem(CURKEY);}catch(_){} }
+// 앱이 갑자기 꺼져서 마지막 글이 큰 저장소에 다 못 들어갔으면, 작은 칸에 남겨 둔 글로 채운다
+function applyCur(){
+  var c=null; try{c=JSON.parse(localStorage.getItem(CURKEY)||'null');}catch(_){}
+  if(!c||!S||(c.epoch&&c.epoch!==S.epoch)) return;
+  var d=S.docs.find(function(x){return x.id===c.id;});
+  if(d&&(c.updated||0)>(d.updated||0)){ d.text=c.text; d.title=c.title; d.updated=c.updated; }
+}
+// 처음 열 때: IndexedDB에서 읽고, 없으면 예전 localStorage 글을 옮긴다(옮긴 걸 확인한 뒤에만 예전 칸을 비움)
+async function storageOpen(){
+  try{ DB=await idbOpen(); }catch(e){ DB=null; }
+  if(!DB){ LSMODE=true; return loadLS(); }
+  var L=null; try{ L=await idbLoadAll(); }catch(e){ L=null; }
+  if(L&&L.state){ SAVED=L.saved; try{if(localStorage.getItem(KEY))localStorage.removeItem(KEY);}catch(_){} return L.state; }
+  var old=loadLS();
+  if(!old) return null;
+  var st=normalize(JSON.parse(JSON.stringify(old)));
+  SAVED={}; var ok=await idbWrite(diffRecords(st,true),true), L2=null;
+  if(ok){ try{ L2=await idbLoadAll(); }catch(_){ L2=null; } }
+  if(L2&&L2.state&&L2.state.docs.length===st.docs.length&&L2.state.versions.length===st.versions.length){
+    SAVED=L2.saved; try{localStorage.removeItem(KEY);}catch(_){} return L2.state;
+  }
+  LSMODE=true; SAVED={}; return old;   // 옮기지 못하면 예전 방식 그대로
+}
+// 시험용: 저장된 상태 읽기, 다른 탭처럼 쓰기
+window.__pn={
+  dump:async function(){ if(LSMODE) return loadLS(); var L=await idbLoadAll(); return L&&L.state; },
+  put:async function(st){ if(LSMODE){localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(REVKEY,'t'+uid());return;} var keep=SAVED; SAVED={}; var r=diffRecords(st,true); SAVED=keep; await idbWrite(r,true); localStorage.setItem(REVKEY,'t'+uid()); },
+  mode:function(){return LSMODE?'ls':'idb';},
+  info:function(){return {rev:TAB.rev,now:tabRevNow(),dead:TAB.dead,tep:TAB.epoch,sep:S&&S.epoch};}
+};
+
+/* --- localStorage (IndexedDB를 못 쓰는 브라우저) --- */
+function lsSaveNow(noPull){
+  if(!S||TAB.dead) return;
+  if(!noPull){ lsTabPull(); if(TAB.dead) return; }
+  var ok=false;
+  try{localStorage.setItem(KEY,JSON.stringify(S));ok=true;}catch(e){}   // 꽉 차도 기록을 몰래 줄이지 않고 알린다
+  if(ok){ var r=uid(); try{localStorage.setItem(REVKEY,r);}catch(_){} TAB.rev=r; TAB.epoch=S.epoch; tabBase(S); bsnapAll(); saveOk(); }
+  else saveBad();
+}
+function loadLS(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+
 /* ---------- 같은 기기의 여러 탭(창)끼리 맞추기 ----------
    저장할 때마다 '저장 번호'를 남기고, 다른 탭이 남긴 번호가 보이면 그 글을 먼저 합친다.
-   두 탭에서 같은 회차를 따로 고쳤으면 더 최근 글을 원래 회차에, 다른 글은 "제목(1)" 회차로 남긴다. */
-var REVKEY=KEY+':rev', TAB={rev:null,base:{},dead:false,epoch:null};
-function tabBase(st){var b={};(st.docs||[]).forEach(function(d){if(d&&d.id)b[d.id]=d.updated||0;});TAB.base=b;}
+   두 탭에서 같은 회차를 따로 고쳤으면 더 최근 글을 원래 회차에, 다른 글은 "제목_(자동저장)" 회차로 남긴다. */
+var REVKEY=KEY+':rev', TAB={rev:null,base:{},nbase:{},dead:false,epoch:null};
+function tabBase(st){
+  var b={};(st.docs||[]).forEach(function(d){if(d&&d.id)b[d.id]=d.updated||0;});TAB.base=b;
+  var nb={},bs=st.boards||{};Object.keys(bs).forEach(function(k){var m={},B=bs[k]||{};(B.notes||[]).forEach(function(n){m[n.id]=n.u||B.updated||0;});nb[k]=m;});TAB.nbase=nb;
+}
 function tabRevNow(){try{return localStorage.getItem(REVKEY);}catch(_){return null;}}
-function tabInit(){TAB.rev=tabRevNow(); TAB.epoch=S.epoch; tabBase(S);}
-function tabPull(){
+function tabInit(){TAB.rev=tabRevNow(); TAB.epoch=S.epoch; tabBase(S); bsnapAll();}
+// 다른 탭이 남긴 글 R을 받아서: 통째로 바뀌었으면 새로 열고, 아니면 합친다
+function tabTake(R){
+  var re=R.epoch||'e0';
+  if(re!==TAB.epoch){
+    if(re>TAB.epoch){ TAB.dead=true; location.reload(); return; }   // 다른 탭에서 로그아웃·로그인으로 글이 통째로 바뀜 → 새로 연다
+    FULLNEXT=true; if(LSMODE) lsSaveNow(true); else queueSave(true); return;   // 옛 상태의 탭이 늦게 쓴 것 → 이 탭의 최신 상태로 다시 쓴다
+  }
+  tabMerge(R);
+}
+async function tabPullAsync(){
   if(!S||TAB.dead) return false;
   var r=tabRevNow(); if(r===TAB.rev) return false;
   if(S.epoch!==TAB.epoch){ TAB.rev=r; return false; }   // 이 탭이 글을 통째로 바꾸는 중(로그아웃 등) → 다른 탭 글을 섞지 않는다
-  var R=loadLS(); TAB.rev=r; if(!R) return false;
-  var re=R.epoch||'e0';
-  if(re!==TAB.epoch){
-    if(re>TAB.epoch){ TAB.dead=true; location.reload(); return true; }   // 다른 탭에서 로그아웃·로그인으로 글이 통째로 바뀜 → 새로 연다
-    saveLSNow(true); return false;   // 옛 상태의 탭이 늦게 쓴 것 → 섞지 않고 이 탭의 최신 상태로 다시 쓴다(그 탭은 이걸 보고 새로 열림)
-  }
-  tabMerge(R); return true;
+  var L=null; try{ L=await idbLoadAll(); }catch(_){ return false; }
+  TAB.rev=r; if(!L||!L.state) return false;
+  if((L.state.epoch||'e0')===TAB.epoch) SAVED=L.saved;
+  tabTake(L.state); return true;
 }
+function lsTabPull(){
+  if(!S||TAB.dead) return false;
+  var r=tabRevNow(); if(r===TAB.rev) return false;
+  if(S.epoch!==TAB.epoch){ TAB.rev=r; return false; }
+  var R=loadLS(); TAB.rev=r; if(!R) return false;
+  tabTake(R); return true;
+}
+function tabPull(){ queuePull(); }
+function pullNow(){ queuePull(); return SAVEQ; }
 function tabMerge(R){
   var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId, prevText=cur()?cur().text:'';
-  var m=mergeCore(S,R,{base:TAB.base}), made=[];
+  var m=mergeCore(S,R,{base:TAB.base,nbase:TAB.nbase}), made=[];
   S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=m.tomb;
   (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});
   S.versions=mergeHist(S.versions,R.versions,S.tomb);
   if(R.fresh===false) S.fresh=false;
   if(!S.owner&&R.owner) S.owner=R.owner;
   tabBase(R);   // 기준은 저장소에 있던 글(아직 안 쓴 이 탭의 글은 다음 저장 때 비교)
-  migrated=false; S=normalize(S);
-  var changed=before!==sigCore(S)+'#'+sigHist(S);
-  if(made.length||sigCore(S)!==sigCore(R)||sigHist(S)!==sigHist(R)) markDirty();
-  if(changed&&bootDone){ refreshAfterRemote(prevActive,prevText); renderConf(false); }
-  if(made.length) conflictToast(made);
+  migrated=false; S=normalize(S); bsnapAll();
+  var cd=cur(), changed=before!==sigCore(S)+'#'+sigHist(S)||!cd||cd.id!==prevActive||cd.text!==ed.value||cd.title!==ttl.value;   // 시각이 같아도 글이 다르면 화면을 맞춘다
+  var nm=m.nconf||[];
+  if(made.length||nm.length||sigCore(S)!==sigCore(R)||sigHist(S)!==sigHist(R)) markDirty();
+  if((changed||nm.length)&&bootDone){ refreshAfterRemote(prevActive,prevText); renderConf(false); }
+  conflictToast(made,nm);
 }
 function bindTabs(){
   window.addEventListener('storage',function(e){
-    if(e.key===REVKEY||e.key===null) tabPull();
+    if(e.key===REVKEY||e.key===null) queuePull();
     else if(e.key===AKEY){   // 다른 탭에서 로그인·로그아웃하면 이 탭도 새로 연다
       var n=null; try{n=JSON.parse(e.newValue||'null');}catch(_){}
       var on=!!(n&&n.on), em=(n&&n.email)||'';
-      if(on!==!!A.on||(on&&em!==(A.email||''))){ saveLSNow(); TAB.dead=true; location.reload(); }
+      if(on!==!!A.on||(on&&em!==(A.email||''))){ saveLeaving(); TAB.dead=true; setTimeout(function(){location.reload();},200); }
     }
   });
-  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') tabPull(); });
-  window.addEventListener('focus',function(){tabPull();});
-  window.addEventListener('pageshow',function(){tabPull();});
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') queuePull(); });
+  window.addEventListener('focus',function(){queuePull();});
+  window.addEventListener('pageshow',function(){queuePull();});
 }
-function loadLS(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
 
 // 데이터가 바뀔 때마다 부른다: 이 기기에 저장하고, 로그인 중이면 드라이브 동기화를 예약한다.
 function markDirty(){ if(S&&S.fresh) S.fresh=false; saveLS(); scheduleSync(); }
 function persistDoc(d){markDirty();}
 function persistVer(v){markDirty();}
 function persistWork(w){markDirty();}
-function persistBoard(){var b=curBoard();b.updated=Date.now();markDirty();}
+// 보드를 바꿀 때마다 직전 모습(BSNAP)과 비교해서, 바뀐 포스트잇·선에 시각을 적고 지운 것은 지운 시각을 남긴다
+var BSNAP={};
+function noteSig(n){var o=Object.assign({},n);delete o.u;return JSON.stringify(o);}
+function bsnap(k,b){var m={},l={};((b&&b.notes)||[]).forEach(function(n){m[n.id]=noteSig(n);});((b&&b.links)||[]).forEach(function(x){l[lkey(x)]=1;});BSNAP[k]={n:m,l:l};}
+function bsnapAll(){BSNAP={};if(S&&S.boards)Object.keys(S.boards).forEach(function(k){bsnap(k,S.boards[k]);});}
+function persistBoard(){
+  var k=boardKey(), b=curBoard(), now=Date.now(), p=BSNAP[k]||{n:{},l:{}};
+  b.gone=b.gone||{}; b.lgone=b.lgone||{};
+  b.notes.forEach(function(n){ if(p.n[n.id]!==noteSig(n)){ n.u=now; delete b.gone[n.id]; } });
+  Object.keys(p.n).forEach(function(id){ if(!b.notes.some(function(n){return n.id===id;})) b.gone[id]=now; });
+  b.links.forEach(function(x){ var q=lkey(x); if(!p.l[q]){ x.u=now; delete b.lgone[q]; } });
+  Object.keys(p.l).forEach(function(q){ if(!b.links.some(function(x){return lkey(x)===q;})) b.lgone[q]=now; });
+  bsnap(k,b); b.updated=now; markDirty();
+}
 function persistMeta(){saveLS();}   // 보던 회차·글자 크기 같은 기기별 설정은 동기화하지 않는다
 // 완전 삭제는 '삭제 표시(tombstone)'를 남겨서, 다른 기기에서 되살아나지 않게 한다
 function markGone(key){
@@ -1295,13 +1534,19 @@ async function gfetch(url,opts){
   if(!res.ok){var t='';try{t=await res.text();}catch(_){} var e=new Error('HTTP '+res.status); e.code=res.status; e.body=t; throw e;}
   return res;
 }
+// 드라이브에서 플롯노트 파일이 쓰는 크기(설정에 보여 줌): 목록에서 받은 크기 + 방금 올린 크기
+var FSZ={};
+function bytesOf(s){try{return new Blob([s]).size;}catch(_){return s.length;}}
+function calcDsize(){ var t=0,k=false; (Y.fids||[]).forEach(function(id){ if(FSZ[id]!=null){t+=FSZ[id];k=true;} }); if(k){ Y.dsize=t; A.dsize=t; } }
 async function listFiles(){
   var q=STORAGE==='drive'
     ? '&spaces=drive&q='+encodeURIComponent("trashed=false and (name='"+FILE_CORE+"' or name='"+FILE_HIST+"')")
     : '&spaces=appDataFolder';
-  var r=await gfetch(API+'/files?pageSize=100&orderBy=createdTime&fields='+encodeURIComponent('files(id,name,version)')+q);
+  var r=await gfetch(API+'/files?pageSize=100&orderBy=createdTime&fields='+encodeURIComponent('files(id,name,version,size)')+q);
   var j=await r.json(), out={core:null,hist:null};
   (j.files||[]).forEach(function(f){ if(f.name===FILE_CORE&&!out.core) out.core=f; else if(f.name===FILE_HIST&&!out.hist) out.hist=f; });
+  [out.core,out.hist].forEach(function(f){ if(f&&f.size!=null) FSZ[f.id]=+f.size; });
+  Y.fids=[out.core&&out.core.id,out.hist&&out.hist.id].filter(Boolean); calcDsize();
   return out;
 }
 async function download(id){
@@ -1313,13 +1558,17 @@ async function download(id){
 async function createFile(name,obj){
   var meta={name:name,mimeType:'application/json'}; if(STORAGE!=='drive') meta.parents=['appDataFolder'];
   var b='pn'+Math.random().toString(36).slice(2);
-  var body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+JSON.stringify(obj)+'\r\n--'+b+'--';
+  var js=JSON.stringify(obj);
+  var body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+js+'\r\n--'+b+'--';
   var r=await gfetch(UPLOAD+'/files?uploadType=multipart&fields=id,version',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:body});
-  return r.json();
+  var j=await r.json(); if(j&&j.id){ FSZ[j.id]=bytesOf(js); Y.fids=(Y.fids||[]).concat([j.id]); calcDsize(); }
+  return j;
 }
 async function updateFile(id,obj){
-  var r=await gfetch(UPLOAD+'/files/'+id+'?uploadType=media&fields=id,version',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-  return r.json();
+  var js=JSON.stringify(obj);
+  var r=await gfetch(UPLOAD+'/files/'+id+'?uploadType=media&fields=id,version',{method:'PATCH',headers:{'Content-Type':'application/json'},body:js});
+  var j=await r.json(); FSZ[id]=bytesOf(js); calcDsize();
+  return j;
 }
 function corePayload(){
   var b={}; Object.keys(S.boards).forEach(function(k){if(boardUsed(S.boards[k]))b[k]=S.boards[k];});
@@ -1328,7 +1577,7 @@ function corePayload(){
 function histPayload(){return {app:'plotnote',schema:1,savedAt:Date.now(),device:DEVICE,versions:S.versions};}
 
 /* ===== 동기화 엔진 ===== */
-var syncT=0, syncMaxT=0, histT=0, pollT=0;
+var syncT=0, syncMaxT=0, histT=0, pollT=0, DRW_PENDING=false;
 function setY(s,err){Y.state=s; if(s==='reauth'&&A.on) armGesture();if(err!==undefined)Y.err=err;refreshStatus();renderAcct();}
 function scheduleSync(){
   if(!A.on) return;
@@ -1358,8 +1607,9 @@ async function syncCycle(reason,force){
 }
 async function syncRun(force){
   try{
-    do{ Y.again=false; tabPull(); if(TAB.dead) return; await doSync(force||Y.forceHist); Y.forceHist=false; }while(Y.again);
+    do{ Y.again=false; await pullNow(); if(TAB.dead) return; await doSync(force||Y.forceHist); Y.forceHist=false; }while(Y.again);
     Y.last=Date.now(); A.since=Y.last; saveAuth(); Y.err=''; setY('idle');
+    var sm=$('#setM'); if(sm&&!sm.hidden) storageUse();   // 설정을 보고 있으면 드라이브 크기를 바로 고친다
   }catch(e){
     if(e&&e.code==='reauth') setY('reauth');
     else if(e&&e.code===403&&/accessNotConfigured|SERVICE_DISABLED|has not been used/i.test(e.body||'')) setY('error','Google Cloud에서 Drive API를 “사용 설정”하지 않았어요');
@@ -1402,26 +1652,29 @@ async function doSync(force){
 }
 // 드라이브에서 받은 내용을 이 기기 데이터와 합친다 (항목별로 최종 수정 시각이 더 늦은 쪽이 이긴다)
 function applyRemote(rc,rh){
-  var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId;
+  var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId, prevEpoch=S.epoch;
   var prevText=cur()?cur().text:'';
-  var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length), made=[];
+  var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length), made=[], nmade=[];
   if(rc&&Y.fromLogin){ keepRemoteOnLogin(rc); }
   if(rc){
     var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
-    (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});   // 두 기기가 다르게 고친 회차 → "제목(1)"로 남김
+    (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});   // 두 기기가 다르게 고친 회차 → "제목_(자동저장)"으로 남김
+    nmade=m.nconf||[];
     if(dropLocal) S.fresh=false;
     if(dropLocal||Y.fromLogin) S.epoch=uid();   // 이 기기 글을 통째로 바꿨으니 다른 탭은 합치지 말고 새로 열게
   }
   S.versions=mergeHist(S.versions,rh?rh.versions:[],S.tomb);
   if(rc||rh){ migrated=false; S=normalize(S); if(migrated){migrated=false;markDirty();} }
-  if(before===sigCore(S)+'#'+sigHist(S)) return;
-  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false); conflictToast(made);
+  if(before===sigCore(S)+'#'+sigHist(S)&&!nmade.length){ S.epoch=prevEpoch; return; }   // 바뀐 게 없으면 통째로 바꾼 것도 아님
+  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false); conflictToast(made,nmade);
 }
 
+function drawerBusy(){return !!RN||!!document.querySelector('#docList .rn-in')||!!DRAG;}
 function refreshAfterRemote(prevActive,prevText){
   var d=cur(); if(!d) return;
-  renderDrawer(); updateTrashLbl();
+  if(drawerBusy()) DRW_PENDING=true; else renderDrawer();   // 이름을 고치거나 끄는 중이면 끝난 뒤에 다시 그린다
+  updateTrashLbl();
   if(d.id!==prevActive){resetDocUi();loadEditor();}
   else{
     if(ed.value!==d.text||ttl.value!==d.title){
@@ -1432,7 +1685,13 @@ function refreshAfterRemote(prevActive,prevText){
     updateCrumb();
   }
   if(!$('#trashM').hidden) renderTrash();
-  if(S.prefs.tab==='board'){ if(UI.sel&&!noteById(UI.sel)) UI.sel=null; renderBoard(); }
+  if(S.prefs.tab==='board'){
+    if(UI.sel&&!noteById(UI.sel)) UI.sel=null;
+    var ae=document.activeElement, nid=null, s0=0, s1=0;   // 쓰던 포스트잇은 다시 그린 뒤에도 그대로 이어 쓰게
+    if(ae&&ae.classList&&ae.classList.contains('nt')&&ae.closest('.note')){nid=ae.closest('.note').getAttribute('data-id');s0=ae.selectionStart;s1=ae.selectionEnd;}
+    renderBoard();
+    if(nid){var ne=$('.note[data-id="'+nid+'"] .nt',cv); if(ne){ne.focus({preventScroll:true}); try{ne.setSelectionRange(s0,s1);}catch(_){} }}
+  }
   if(S.prefs.tab==='hist') renderHist();
 }
 function flushSync(){ if(A.on&&Date.now()<=A.exp&&navigator.onLine&&(syncT||histT||Y.state==='error')) syncNow('leave',true); }
@@ -1466,15 +1725,13 @@ function keepRemoteOnLogin(rc){
 }
 
 /* ===== 충돌: 같은 회차를 두 곳(기기·탭)에서 따로 고쳤을 때 =====
-   더 최근에 고친 글은 원래 회차에 두고, 다른 글은 바로 아래 "제목(1)" 회차로 남긴다. */
+   더 최근에 고친 글은 원래 회차에 두고, 다른 글은 바로 아래 "제목_(자동저장)" 회차로 남긴다. */
 function conflictCopy(W,L){
   if(!W||!L||!L.text||L.text===W.text) return null;
   var id='c'+String(L.id).slice(-8)+(L.updated||0).toString(36);   // 두 곳에서 같은 충돌을 봐도 하나만 생기게
   if(S.docs.some(function(d){return d.id===id;})||(S.tomb&&S.tomb[id])) return null;
-  var titles=S.docs.filter(function(d){return d.workId===W.workId&&!d.trashed;}).map(function(d){return d.title;});
-  var base=String(W.title||'제목 없음').replace(/\s+$/,''), n=1;
-  while(titles.indexOf(base+'('+n+')')>=0) n++;
-  var now=Date.now(), c={id:id,workId:W.workId,title:base+'('+n+')',text:L.text,created:W.created||now,updated:now};
+  var base=String(W.title||'제목 없음').replace(/\s+$/,'');
+  var now=Date.now(), c={id:id,workId:W.workId,title:base+'_(자동저장)',text:L.text,created:W.created||now,updated:now};
   S.docs.push(c);
   var w=S.works.find(function(x){return x.id===W.workId;});
   if(w){
@@ -1483,9 +1740,10 @@ function conflictCopy(W,L){
   }
   return c;
 }
-function conflictToast(made){
-  if(!made||!made.length) return;
-  toast(made.length>1?'같은 회차를 두 곳에서 고친 글 '+made.length+'개를 "(1)" 회차로 따로 남겼어요':'같은 회차를 두 곳에서 고쳐서, 다른 쪽 글을 「'+made[0].title+'」로 따로 남겼어요');
+function conflictToast(made,nmade){
+  made=made||[]; nmade=nmade||[];
+  if(made.length) toast(made.length>1?'같은 회차를 두 곳에서 고친 글 '+made.length+'개를 "_(자동저장)" 회차로 따로 남겼어요':'같은 회차를 두 곳에서 고쳐서, 다른 쪽 글을 「'+made[0].title+'」로 따로 남겼어요');
+  else if(nmade.length) toast('같은 포스트잇을 두 곳에서 고쳐서, 다른 쪽 글을 옆에 새 포스트잇으로 남겼어요');
 }
 /* ===== 충돌: 같은 회차를 두 기기에서 다르게 고쳤을 때 ===== */
 function confList(){
@@ -1551,7 +1809,7 @@ function refreshStatus(){
   var s,t,tip='';
   var local='이 기기에 저장됨'+(lastLocal?' '+hm(lastLocal):'');
   if(!bootDone){s='local';t='불러오는 중…';}
-  else if(lsFail){s='warn';t='저장하지 못했어요 · .txt로 받아 두세요';}
+  else if(lsFail){ if(driveOk()){s='ok';t='드라이브에 저장됨';tip='기기 저장 공간 부족';} else {s='warn';t=(A.on&&Y.state==='offline'?'오프라인 · ':'')+'저장 안 됨';} }
   else if(!A.on){s='local';t=local;tip='로그인하면 다른 기기와 동기화돼요';}
   else if(Y.state==='busy'){s='busy';t='동기화 중…';}
   else if(Y.state==='reauth'){s='warn';t='구글 다시 연결 필요 · 이 기기에는 저장됨';tip='눌러서 다시 연결';}
@@ -1560,9 +1818,11 @@ function refreshStatus(){
   else if(syncT){s='busy';t='저장 대기 중…';}
   else{s='ok';t='드라이브 동기화됨 '+hm(Y.last||Date.now());}
   box.setAttribute('data-s',s); txt.textContent=t; box.title=tip;
+  if(lsFail&&s==='ok') txt.append(h('span',{class:'sv-more',text:' · 기기 공간 부족'}));
+  saveFailUI();
   var fz=$('#fzSave'); if(fz){fz.setAttribute('data-s',s); fz.title=t;}
   var bn=$('#reBanner');
-  if(bn) bn.hidden=!(A.on&&Y.state==='reauth');
+  if(bn){ bn.hidden=!(A.on&&Y.state==='reauth'); var rt=$('#reTxt'); if(rt) rt.textContent=lsFail?'구글 연결이 끊겼어요.':'구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.'; }   // 기기에도 못 쓰는 중이면 '이 기기에 저장' 말을 빼요
 }
 function renderAcctBtn(){
   var b=$('#acctBtn'); if(!b) return; b.textContent='';
@@ -1851,6 +2111,7 @@ function rnInput(kind,obj){
   function commit(save){
     if(done) return; done=true; RN=null; var eb=$('#editDone'); if(eb) eb.textContent='완료';
     var t=inp.value.trim();
+    obj=(kind==='w'?S.works:S.docs).find(function(x){return x.id===obj.id;})||obj;   // 그 사이 다른 탭·기기 글과 합쳐졌으면 지금 것에 반영
     if(save&&t!==(obj.title||'')&&(t||kind==='d')){
       obj.title=t; obj.updated=Date.now();
       if(kind==='w') persistWork(obj); else { persistDoc(obj); if(obj.id===S.activeId&&typeof ttl!=='undefined'&&ttl) ttl.value=t; }
@@ -1991,7 +2252,7 @@ function renderDrawer(){
     if(!coll){
       if(!docs.length) ul.append(h('li',{class:'wk-empty','data-w':w.id,text:'아직 회차가 없어요. + 를 눌러 추가하세요.'}));
       docs.forEach(function(d){
-        var st=stats(d.text), meta=NF.format(st.inc)+'자'+(d.example?' · 예시 원고':'');
+        var st=docStats(d), meta=NF.format(st.inc)+'자'+(d.example?' · 예시 원고':'');
         if(E){
           var dm=(RN&&RN.kind==='d'&&RN.id===d.id)?rnInput('d',d):
             h('div',{class:'doc-main rn-t'},
@@ -2017,7 +2278,7 @@ function updateRow(d){
   if(srActive()){ clearTimeout(SR.t); SR.t=setTimeout(function(){if(srActive())renderDrawer();},400); updateTotal(); return; }   // 검색 결과는 쓰기를 잠깐 멈추면 다시 그린다
   if(li){
     $('.doc-t',li).textContent=d.title||'제목 없음';
-    $('.doc-m',li).textContent=NF.format(stats(d.text).inc)+'자'+(d.example?' · 예시 원고':'');
+    $('.doc-m',li).textContent=NF.format(docStats(d).inc)+'자'+(d.example?' · 예시 원고':'');
   }
   var w=S.works.find(function(x){return x.id===d.workId;}), m=w&&$('.wk[data-wid="'+w.id+'"] .wk-m');
   if(m) m.textContent=workMeta(w);
@@ -2025,7 +2286,6 @@ function updateRow(d){
 }
 function updateTotal(){
   delUI();
-  var total=0, ld=liveDocs(); ld.forEach(function(d){total+=stats(d.text).inc;});
   updateTrashLbl();
 }
 function resetDocUi(){
@@ -2084,7 +2344,7 @@ function renderSearch(ul){
       ul.append(h('li',{class:'doc sub'+(d.id===S.activeId?' on':''),'data-id':d.id,'data-w':w.id},
         h('button',{class:'doc-main',onclick:function(){openFind(d.id);}},
           srMarked(h('span',{class:'doc-t'}),d.title||'제목 없음',q),
-          sn?srMarked(h('span',{class:'doc-s'}),sn,q):h('span',{class:'doc-m',text:NF.format(stats(d.text).inc)+'자'}))));
+          sn?srMarked(h('span',{class:'doc-s'}),sn,q):h('span',{class:'doc-m',text:NF.format(docStats(d).inc)+'자'}))));
     });
   });
   if(!any) ul.append(h('li',{class:'wk-empty sr-none',text:'찾는 글이 없어요'}));
@@ -2167,7 +2427,7 @@ function trashItems(){
   });
   S.docs.forEach(function(d){
     var w=S.works.find(function(x){return x.id===d.workId;});
-    if(d.trashed&&w&&!w.trashed) out.push({type:'doc',id:d.id,title:d.title,t:d.trashed,work:w.title,chars:stats(d.text).inc});
+    if(d.trashed&&w&&!w.trashed) out.push({type:'doc',id:d.id,title:d.title,t:d.trashed,work:w.title,chars:docStats(d).inc});
   });
   return out.sort(function(a,b){return b.t-a.t;});
 }
@@ -2215,7 +2475,7 @@ function emptyTrash(){
 }
 function openTrash(){openDrawer(false);$('#toast').hidden=true;renderTrash();$('#trashM').hidden=false;$('#trashX').focus();}
 function closeTrash(){$('#trashM').hidden=true;}
-function openSet(){openDrawer(false);$('#toast').hidden=true;BK=null;bkShow();backupLbl();$('#setM').hidden=false;}
+function openSet(){openDrawer(false);$('#toast').hidden=true;BK=null;bkShow();backupLbl();storageUse();$('#setM').hidden=false;}
 function closeSet(){$('#setM').hidden=true;}
 function renderTrash(){
   var list=$('#trashList'); list.textContent='';
@@ -2242,6 +2502,54 @@ function backupLbl(){
   var l=$('#bkLast'); if(!l) return;
   var t=S&&S.prefs.lastBackup;
   l.textContent=t?'이 기기에서 마지막으로 받은 백업: '+dateKo(t):'이 기기에서 아직 백업 파일을 받은 적이 없어요.'; l.hidden=false;
+}
+// 로그인 중이고 드라이브에 올라가고 있는지(기기에 못 써도 글은 드라이브에 있음)
+function driveOk(){ return !!A.on&&Date.now()<=A.exp&&navigator.onLine&&(Y.state==='idle'||Y.state==='busy'); }
+// 기기에 저장이 안 될 때 맨 위 줄: 드라이브에 저장되는 중이면 노란 줄(버튼 없음), 아니면 빨간 줄 + 백업 받기
+// 저장은 되지만 기기 공간이 거의 찼을 때(로그인 안 함): 노란 줄 + 백업 받기 + 닫기(닫으면 하루 동안 안 뜸)
+var LOW=false, lowAt=0, LOWX=KEY+':lowx';
+function lowHidden(){ var t=0; try{t=+localStorage.getItem(LOWX)||0;}catch(_){} return Date.now()-t<864e5; }
+function lowClose(){ try{localStorage.setItem(LOWX,String(Date.now()));}catch(_){} saveFailUI(); }
+function lowCheck(force){
+  if(!force&&Date.now()-lowAt<6e5) return; lowAt=Date.now();
+  if(LSMODE||!navigator.storage||!navigator.storage.estimate) return;
+  navigator.storage.estimate().then(function(e){ var u=e.usage||0,q=e.quota||0; var l=!!q&&(q-u<300*1048576||u/q>0.9); if(l!==LOW){LOW=l;saveFailUI();} }).catch(function(){});
+}
+function saveFailUI(){
+  var b=$('#saveFail'); if(!b) return;
+  var low=!lsFail&&LOW&&!A.on&&!lowHidden();
+  b.hidden=!lsFail&&!low; $('#saveFailX').hidden=!low; b.classList.toggle('low',low);
+  if(b.hidden) return;
+  var ok=!low&&driveOk(), t=$('#saveFailTxt'); t.textContent='';
+  if(low) t.textContent='기기 저장 공간이 거의 찼어요. 백업 파일을 받아 두세요.';
+  else if(ok) t.append(h('b',{text:'기기 저장 공간이 부족해서 이 기기에 저장하지 못하고 있어요.'}),document.createTextNode(' 구글 드라이브에는 정상적으로 저장되고 있어요.'));
+  else t.append(h('b',{text:'기기 저장 공간이 꽉 차서 저장하지 못하고 있어요.'}),document.createTextNode(' 새로고침하거나 닫기 전에 백업 파일을 받아 두세요.'));
+  b.classList.toggle('soft',ok||low); $('#saveFailBk').hidden=ok;
+}
+// 설정 · 저장 공간: 이 기기(플롯노트가 쓰는 공간·더 쓸 수 있는 공간) + 구글 드라이브(상태·파일 크기)
+function fmtSize(n){ var mb=n/1048576; if(mb<0.1) return '0.1MB 미만'; if(mb<1024) return (mb<10?mb.toFixed(1):Math.round(mb))+'MB'; var gb=mb/1024; return (gb<10?gb.toFixed(1):Math.round(gb))+'GB'; }
+function storageUse(){
+  var body=$('#stBody'); if(!body) return;
+  function row(k,v,cls){ return h('div',{class:'su-row'},h('span',{text:k}),h('b',{class:cls||null,text:v})); }
+  function draw(used,quota){
+    body.textContent='';
+    var free=quota?Math.max(0,quota-used):null, low=free!=null&&(free<300*1048576||used/quota>0.9);
+    var dev=h('div',{class:'su-box'},h('div',{class:'su-h'},ico('device'),document.createTextNode('이 기기')),row('플롯노트가 쓰는 공간',fmtSize(used)));
+    if(free!=null) dev.append(row('더 쓸 수 있는 공간','약 '+fmtSize(free)));
+    if(low) dev.append(h('div',{class:'su-warn',text:'기기 저장 공간이 거의 찼어요. '+(A.on?'글은 구글 드라이브에도 저장되고 있어요.':'백업 파일을 받아 두세요.')}));
+    var st, cls=null;
+    if(!A.on){st='로그인하지 않음';cls='su-off';}
+    else if(Y.state==='offline'){st='오프라인';cls='su-off';}
+    else if(Y.state==='reauth'){st='다시 연결 필요';cls='su-off';}
+    else if(Y.state==='error'){st='동기화 오류';cls='su-off';}
+    else {st='동기화됨'+(Y.last?' · '+hm(Y.last):'');cls='su-ok';}
+    var drv=h('div',{class:'su-box'},h('div',{class:'su-h'},ico('cloud'),document.createTextNode('구글 드라이브')),row('상태',st,cls));
+    if(A.on){ var ds=Y.dsize!=null?Y.dsize:A.dsize; drv.append(row('플롯노트 파일',ds!=null?fmtSize(ds):'확인 중…')); }   // 로그인 중이면 언제나(마지막으로 안 크기라도) 보여 준다
+    body.append(dev,drv);
+  }
+  if(LSMODE){ var n=0; try{ for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);n+=(k.length+(localStorage.getItem(k)||'').length)*2;} }catch(_){} draw(n,5*1048576); return; }
+  if(navigator.storage&&navigator.storage.estimate) navigator.storage.estimate().then(function(e){draw(e.usage||0,e.quota||0);}).catch(function(){draw(0,0);});
+  else draw(0,0);
 }
 function exportBackup(){
   var now=Date.now();
@@ -2340,6 +2648,9 @@ function uhPush(force){
   UH.stack.length=UH.i+1;
   if(!force&&!big&&UH.i>0&&now-UH.t<900){UH.stack[UH.i]={t:v};}
   else{UH.stack.push({t:v});if(UH.stack.length>300)UH.stack.shift();UH.i=UH.stack.length-1;}
+  // 아주 긴 회차에서 메모리를 너무 쓰지 않게: 쌓인 글이 300만 자를 넘으면 오래된 것부터 버린다
+  var tot=0; for(var k=0;k<UH.stack.length;k++) tot+=UH.stack[k].t.length;
+  while(tot>3e6&&UH.stack.length>2){ tot-=UH.stack[0].t.length; UH.stack.shift(); UH.i--; }
   UH.t=now; uhBtns();
 }
 function uhGo(dir){
@@ -2358,6 +2669,15 @@ function fitEd(){
   sh.scrollTop=top;
   if(FIND.on) hlRender();
 }
+// 글자를 칠 때: 글이 칸을 넘칠 때만 늘린다(매번 줄였다 다시 재지 않음). 줄이는 건 잠깐 멈췄을 때 한 번에
+function fitFast(ev){
+  var t=ev&&ev.inputType||'';
+  if(/^delete|^history/.test(t)) return;
+  if(ed.scrollHeight>ed.clientHeight+1) ed.style.height=ed.scrollHeight+'px';
+}
+// 글자 수·목록 숫자·칸 높이 맞추기는 0.25초 쉬었을 때 한 번만
+var idleT=0;
+function idleUI(d){ clearTimeout(idleT); idleT=setTimeout(function(){ updateStats(); if(d&&cur()===d) updateRow(d); },250); }
 function fitWatch(){
   var w0=-1, raf=0;
   function soon(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(function(){ if(typeof ed!=='undefined'&&ed) fitEd(); }); }
@@ -2838,7 +3158,7 @@ function renderHistDetail(list){
   box.append(
     h('button',{class:'ib back','aria-label':'기록 목록으로',title:'기록 목록',onclick:function(){UI.hist=null;renderHist();}},ico('back')),
     h('div',{class:'hd mt'},h('h3',{text:when(v.t)+' · '+(REASON[v.reason]||'기록')}),
-      h('p',{class:'muted',text:'기록 '+NF.format(stats(v.text).inc)+'자 → 지금 '+NF.format(stats(d.text).inc)+'자'})),
+      h('p',{class:'muted',text:'기록 '+NF.format(stats(v.text).inc)+'자 → 지금 '+NF.format(docStats(d).inc)+'자'})),
     h('div',{class:'h-bar'},
       h('div',{class:'seg'},
         h('button',{'aria-pressed':UI.hmode==='diff'?'true':'false',onclick:function(){if(UI.hmode!=='diff'){hKeep();UI.hmode='diff';renderHist();}}},'지금 글과 비교'),
@@ -3246,6 +3566,7 @@ function bindOnce(){
   $('#addGuide').addEventListener('click',addGuide);
   bindFocus(); bindSearch(); bindTabs();
   $('#bkOut').addEventListener('click',exportBackup);
+  $('#saveFailBk').addEventListener('click',exportBackup); $('#saveFailX').addEventListener('click',lowClose);
   $('#bkIn').addEventListener('click',function(){$('#bkFile').click();});
   $('#bkFile').addEventListener('change',function(){readBackup(this.files&&this.files[0]);});
   $('#bkGo').addEventListener('click',importBackup);
@@ -3274,9 +3595,9 @@ function bindOnce(){
   $('#save').addEventListener('click',function(){
     if(!A.on) openAcct(); else if(Y.state==='reauth') requestToken(false); else if(Y.state==='error'||Y.state==='offline') openAcct(); else syncNow('manual',true);
   });
-  ed.addEventListener('input',function(){
+  ed.addEventListener('input',function(ev){
     var d=cur(); d.text=ed.value; d.updated=Date.now(); delete d.example;
-    updateStats(); persistDoc(d); updateRow(d); snapTick(d); uhPush();
+    fitFast(ev); persistDoc(d); snapTick(d); uhPush(); idleUI(d);
   });
   ttl.addEventListener('input',function(){
     var d=cur(); d.title=ttl.value; d.updated=Date.now(); delete d.example;
@@ -3375,11 +3696,11 @@ function bindOnce(){
   // 나갈 때 남은 저장을 서둘러 보낸다
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='hidden'&&S){
-      saveLSNow(); flushSync();
       var d=cur(); if(d) maybeSnap(d,true);
+      saveLeaving(); flushSync();
     }
   });
-  window.addEventListener('pagehide',function(){if(S){saveLSNow();flushSync();}});
+  window.addEventListener('pagehide',function(){if(S){saveLeaving();flushSync();}});
 }
 function showAll(){
   bindOnce();
@@ -3391,9 +3712,14 @@ function showAll(){
 }
 function boot(){
   loadAuth();
-  var ls=loadLS();
+  storageOpen().catch(function(){LSMODE=true;return loadLS();}).then(boot2);
+}
+function boot2(ls){
   if(ls) S=normalize(ls); else {S=normalize(seed());}
-  tabInit(); bindOnce(); showAll();
+  applyCur(); tabInit(); bindOnce(); showAll();
+  // 브라우저가 저장 공간이 부족할 때 이 사이트 글을 지우지 않도록 요청(파이어폭스는 창이 떠서 하지 않음)
+  try{ if(navigator.storage&&navigator.storage.persist&&!/Firefox/.test(navigator.userAgent)) navigator.storage.persisted().then(function(p){if(!p)navigator.storage.persist();}).catch(function(){}); }catch(_){}
+  lowCheck(true); document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') lowCheck(); });
   bootDone=true; purgeExpired(); saveLSNow(); renderConf(false);
   renderAcctBtn(); initTc();
   if(A.on){ if(Date.now()>A.exp){setY('reauth');silentRenew('boot');} else {syncNow('launch',true);scheduleRenew();} }
