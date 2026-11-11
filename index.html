@@ -907,7 +907,8 @@ function mergeCore(local,rem,opt){
   var docs=mergeById(ld,rem.docs,tomb,function(loser,winner,mine){
     // 두 기기가 마지막 동기화 뒤에 서로 다르게 고쳤다면, 진 쪽 글은 반드시 기록으로 남기고 충돌로 알린다
     if(!(loser.text&&loser.text!==winner.text)) return;
-    if(opt.since&&(loser.updated||0)<=opt.since) return;   // 이미 한 번 받아 본 글이면 충돌이 아님
+    if(opt.base){ var b=opt.base[loser.id]; if(b==null||(loser.updated||0)<=b) return; }   // 탭끼리: 마지막으로 본 뒤에 고친 글만 충돌
+    else if(opt.since&&(loser.updated||0)<=opt.since) return;   // 이미 한 번 받아 본 글이면 충돌이 아님
     over.push(loser); conf.push({loser:loser,winner:winner,mine:mine});
   });
   var works=mergeById(lw,rem.works,tomb);
@@ -1027,14 +1028,15 @@ var editingWork=null, migrated=false;
 var SEED_TEXT="지금 보고 있는 이 칸이 원고예요. 여기에 그냥 이어서 쓰면 돼요. 저장 버튼은 없어요. 쓰는 대로 저절로 저장돼요.\n\n왼쪽 위의 ☰ 버튼을 누르면 내 소설 목록이 열려요. 소설 안에 회차를 하나씩 쌓아 가는 구조예요. 소설을 새로 만들 때는 \"새 소설\"을, 회차를 더할 때는 소설 옆의 +를 누르면 돼요.\n\n위쪽에는 탭이 세 개 있어요.\n\n쓰기는 지금 이 화면이에요. 보드는 이야기를 정리하는 곳이고, 기록은 지난 글을 다시 꺼내 보는 곳이에요.\n\n이 글은 지우고 싶을 때 지워도 괜찮아요. 처음부터 마음 편히 시작하세요.\n\n자, 이제 플롯노트에서 첫 문장을 시작해 볼까요?";
 var SEED_TEXT2="[보드]\n머릿속에 있는 걸 일단 꺼내 놓는 빈 공간이에요.\n쓰다가 문득 떠오른 설정이나 대사 등을 포스트잇으로 붙여 보세요.\n관계가 있는 메모끼리는 같은 색으로 구분하거나 선으로 이을 수 있어요.\n보드는 소설 전체가 함께 쓰는 \"소설 공용\" 보드와 회차마다 따로 쓰는 \"이 회차\" 보드가 있어요. 위쪽에서 언제든 오가며 확인할 수 있어요.\n\n\n[기록]\n쓰다가 잠깐 멈추면 자동으로 기록을 남겨요. 계속 쓰는 동안에도 3분마다 남겨요. 직접 남기고 싶으면 아래 툴바의 시계 버튼(기록 남기기)을 누르세요.\n기록을 열면 지금 글과 단어 하나하나 비교해서 보여 줘요. 지워진 글은 빨간색, 새로 쓴 글은 파란색이에요. 마음에 들면 그 기록으로 되돌릴 수 있고, 되돌리기 직전의 글도 기록에 남아요.\n\n\n[편집]\n왼쪽 메뉴 맨 아래의 \"편집\"을 누르면 소설과 회차의 순서와 이름을 바꿀 수 있어요. 줄 왼쪽의 점을 잡고 끌거나, 줄을 꾹 누른 뒤 끌면 순서가 바뀌어요. 이름은 연필을 눌러 바꿔요. 다 했으면 \"완료\"를 누르세요.\n\n\n[삭제]\n왼쪽 메뉴 맨 아래의 \"삭제\"를 누르고 지울 소설이나 회차를 선택하세요. 삭제한 글은 휴지통에서 30일 동안 보관돼요. 휴지통은 설정 안에 있어요.\n\n\n[내보내기]\n왼쪽 메뉴 맨 아래의 \"받기\"를 누르고 받을 소설이나 회차를 고르세요. txt나 epub 파일로 받을 수 있어요. 소설을 고르면 합본 하나로, 회차를 고르면 회차마다 따로 받고, 여러 개는 압축 파일(zip) 하나에 담겨요. epub은 전자책 앱에서 읽을 수 있어요.\n\n\n[여러 기기에서 쓰기]\n구글로 로그인하면 폰, 태블릿, 컴퓨터 어디서 열어도 같은 원고가 이어져요. 내 글이 어디에 어떻게 저장되는지는 3화에 자세히 적어 두었어요.";
 
-var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기에서 다르게 고쳤다면 어느 쪽 글을 쓸지 물어봐요. 고르지 않은 글도 기록에 남아요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
+var SEED_TEXT3="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기나 두 탭에서 따로 고쳤다면, 더 최근에 고친 글은 그 회차에 두고 다른 글은 바로 아래 「회차 이름(1)」 회차로 따로 남겨요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
+var SEED_TEXT3_OLD="[내 글은 나만 볼 수 있어요]\n플롯노트는 여러분의 글을 볼 수 없어요.\n플롯노트에는 글을 받아 두는 서버가 없어요. 쓴 글은 이 기기와 여러분의 구글 드라이브에만 저장되고, 플롯노트는 그 둘을 이어 주는 역할만 해요. 만든 사람도 여러분의 글을 볼 방법이 없어요.\n\n\n[글은 어디에 저장되나요]\n구글로 로그인하면 글이 여러분 구글 드라이브 안의 '플롯노트 전용 숨김 공간'에 저장돼요.\n· plotnote_backup.json: 소설, 회차, 보드\n· plotnote_backup_history.json: 기록\n이 공간은 드라이브 목록에 보이지 않아서, 실수로 지우거나 옮길 일이 없어요. 플롯노트도 이 공간만 쓸 수 있고, 드라이브의 다른 파일은 볼 수 없어요.\n\n\n[저장된 글을 지우고 싶다면]\n구글 드라이브 → 설정 → 앱 관리 → 플롯노트 → 옵션 → \"숨겨진 앱 데이터 삭제\"를 누르면 드라이브에 저장된 플롯노트 글이 지워져요. 지우기 전에 설정에서 백업 파일을 받아 두세요.\n\n\n[로그인 없이 쓰면]\n글은 지금 쓰는 기기의 브라우저에만 저장되고, 다른 기기와 이어지지 않아요. 브라우저 기록을 지우면 글도 함께 지워질 수 있으니 백업 파일을 자주 받아 두세요.\n\n\n[구글 연결 확인]\n구글은 보안을 위해 연결을 1시간마다 새로 확인해요. 플롯노트가 알아서 다시 이어 주는데, 아이폰이나 아이패드에서는 \"이 사이트가 팝업 윈도우를 열려고 합니다\" 같은 확인 창이 뜰 수 있어요. 구글 연결을 위한 창이니 \"허용\"을 눌러 주세요.\n허용하지 않아도 글은 이 기기에 계속 저장돼요. 화면 위쪽의 \"다시 연결\"을 누르면 그때 이어서 동기화돼요.\n\n\n[인터넷이 끊겨도 괜찮아요]\n인터넷이 없을 때 쓴 글은 이 기기에 저장해 두었다가, 다시 연결되면 드라이브로 올려요.\n같은 회차를 두 기기에서 다르게 고쳤다면 어느 쪽 글을 쓸지 물어봐요. 고르지 않은 글도 기록에 남아요.\n\n\n[홈 화면에 추가했다면]\n아이폰·아이패드에서 홈 화면에 추가한 플롯노트는 사파리와 저장 공간이 따로예요. 홈 화면 앱에서도 구글로 로그인하면 드라이브에 있던 글을 그대로 불러와요.";
 
 function newDoc(title,workId){var now=Date.now();return {id:uid(),workId:workId,title:title||'',text:'',created:now,updated:now};}
 function newWorkObj(title,id){var now=Date.now();return {id:id||uid(),title:title,created:now,updated:now};}
 function seed(){
   var now=Date.now(), id=uid(), wid=uid(), ids=[uid(),uid(),uid(),uid(),uid()];
   return {
-    fresh:true, tomb:{},
+    fresh:true, tomb:{}, epoch:uid(),
     works:[{id:wid,title:'플롯노트 안내',created:now,updated:now}],
     docs:[{id:id,workId:wid,title:'1화 플롯노트에 오신 걸 환영해요',text:SEED_TEXT,created:now,updated:now,example:true},
       {id:uid(),workId:wid,title:'2화 이렇게 써 보세요',text:SEED_TEXT2,created:now+1,updated:now,example:true},
@@ -1057,6 +1059,7 @@ function normalize(s){
   s.works=Array.isArray(s.works)?s.works.filter(function(w){return w&&w.id;}):[];
   s.boards=(s.boards&&typeof s.boards==='object')?s.boards:{};
   s.tomb=(s.tomb&&typeof s.tomb==='object')?s.tomb:{};
+  if(!s.epoch) s.epoch='e0';   // 다른 탭이 이 값이 바뀐 걸 보면(로그아웃·로그인으로 통째로 바뀜) 합치지 않고 새로 연다
   s.prefs=Object.assign({size:17,font:'serif',tab:'write',scope:'doc'},s.prefs||{});
   if(!s.prefs.collapsed||typeof s.prefs.collapsed!=='object') s.prefs.collapsed={};
   if(!s.works.length){s.works.push(newWorkObj('내 소설'));migrated=true;}
@@ -1101,11 +1104,62 @@ function lastVer(docId){for(var i=S.versions.length-1;i>=0;i--){if(S.versions[i]
 /* ---------- 저장: 이 기기(항상) + 구글 드라이브(로그인했을 때) ---------- */
 var lsTimer=0;
 function saveLS(){clearTimeout(lsTimer);lsTimer=setTimeout(saveLSNow,350);}
-function saveLSNow(){
-  if(!S) return;
-  try{localStorage.setItem(KEY,JSON.stringify(S));lastLocal=Date.now();lsFail=false;}
-  catch(e){try{var lite=Object.assign({},S,{versions:S.versions.slice(-30)});localStorage.setItem(KEY,JSON.stringify(lite));lastLocal=Date.now();lsFail=false;}catch(_){lsFail=true;}}
+function saveLSNow(noPull){
+  if(!S||TAB.dead) return;
+  if(!noPull){ tabPull(); if(TAB.dead) return; }   // 다른 탭이 그 사이 저장했으면 먼저 합친 뒤에 쓴다(덮어쓰지 않게)
+  var ok=false;
+  try{localStorage.setItem(KEY,JSON.stringify(S));ok=true;}
+  catch(e){try{var lite=Object.assign({},S,{versions:S.versions.slice(-30)});localStorage.setItem(KEY,JSON.stringify(lite));ok=true;}catch(_){}}
+  if(ok){ lastLocal=Date.now(); lsFail=false; var r=uid(); try{localStorage.setItem(REVKEY,r);}catch(_){} TAB.rev=r; TAB.epoch=S.epoch; tabBase(S); }
+  else lsFail=true;
   refreshStatus();
+}
+/* ---------- 같은 기기의 여러 탭(창)끼리 맞추기 ----------
+   저장할 때마다 '저장 번호'를 남기고, 다른 탭이 남긴 번호가 보이면 그 글을 먼저 합친다.
+   두 탭에서 같은 회차를 따로 고쳤으면 더 최근 글을 원래 회차에, 다른 글은 "제목(1)" 회차로 남긴다. */
+var REVKEY=KEY+':rev', TAB={rev:null,base:{},dead:false,epoch:null};
+function tabBase(st){var b={};(st.docs||[]).forEach(function(d){if(d&&d.id)b[d.id]=d.updated||0;});TAB.base=b;}
+function tabRevNow(){try{return localStorage.getItem(REVKEY);}catch(_){return null;}}
+function tabInit(){TAB.rev=tabRevNow(); TAB.epoch=S.epoch; tabBase(S);}
+function tabPull(){
+  if(!S||TAB.dead) return false;
+  var r=tabRevNow(); if(r===TAB.rev) return false;
+  if(S.epoch!==TAB.epoch){ TAB.rev=r; return false; }   // 이 탭이 글을 통째로 바꾸는 중(로그아웃 등) → 다른 탭 글을 섞지 않는다
+  var R=loadLS(); TAB.rev=r; if(!R) return false;
+  var re=R.epoch||'e0';
+  if(re!==TAB.epoch){
+    if(re>TAB.epoch){ TAB.dead=true; location.reload(); return true; }   // 다른 탭에서 로그아웃·로그인으로 글이 통째로 바뀜 → 새로 연다
+    saveLSNow(true); return false;   // 옛 상태의 탭이 늦게 쓴 것 → 섞지 않고 이 탭의 최신 상태로 다시 쓴다(그 탭은 이걸 보고 새로 열림)
+  }
+  tabMerge(R); return true;
+}
+function tabMerge(R){
+  var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId, prevText=cur()?cur().text:'';
+  var m=mergeCore(S,R,{base:TAB.base}), made=[];
+  S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=m.tomb;
+  (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});
+  S.versions=mergeHist(S.versions,R.versions,S.tomb);
+  if(R.fresh===false) S.fresh=false;
+  if(!S.owner&&R.owner) S.owner=R.owner;
+  tabBase(R);   // 기준은 저장소에 있던 글(아직 안 쓴 이 탭의 글은 다음 저장 때 비교)
+  migrated=false; S=normalize(S);
+  var changed=before!==sigCore(S)+'#'+sigHist(S);
+  if(made.length||sigCore(S)!==sigCore(R)||sigHist(S)!==sigHist(R)) markDirty();
+  if(changed&&bootDone){ refreshAfterRemote(prevActive,prevText); renderConf(false); }
+  if(made.length) conflictToast(made);
+}
+function bindTabs(){
+  window.addEventListener('storage',function(e){
+    if(e.key===REVKEY||e.key===null) tabPull();
+    else if(e.key===AKEY){   // 다른 탭에서 로그인·로그아웃하면 이 탭도 새로 연다
+      var n=null; try{n=JSON.parse(e.newValue||'null');}catch(_){}
+      var on=!!(n&&n.on), em=(n&&n.email)||'';
+      if(on!==!!A.on||(on&&em!==(A.email||''))){ saveLSNow(); TAB.dead=true; location.reload(); }
+    }
+  });
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') tabPull(); });
+  window.addEventListener('focus',function(){tabPull();});
+  window.addEventListener('pageshow',function(){tabPull();});
 }
 function loadLS(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
 
@@ -1297,8 +1351,14 @@ async function syncCycle(reason,force){
   if(Y.running){Y.again=true;if(force)Y.forceHist=true;return;}
   if(!navigator.onLine){setY('offline');return;}
   Y.running=true; setY('busy');
+  // 탭이 여러 개면 드라이브와는 한 번에 한 탭만 주고받는다(로그인 직후 정리가 끝나기 전에 다른 탭이 끼어들지 않게)
+  if(navigator.locks&&navigator.locks.request){ try{ await navigator.locks.request('plotnote-sync',function(){return syncRun(force);}); }catch(_){ await syncRun(force); } }
+  else await syncRun(force);
+  Y.running=false;
+}
+async function syncRun(force){
   try{
-    do{ Y.again=false; await doSync(force||Y.forceHist); Y.forceHist=false; }while(Y.again);
+    do{ Y.again=false; tabPull(); if(TAB.dead) return; await doSync(force||Y.forceHist); Y.forceHist=false; }while(Y.again);
     Y.last=Date.now(); A.since=Y.last; saveAuth(); Y.err=''; setY('idle');
   }catch(e){
     if(e&&e.code==='reauth') setY('reauth');
@@ -1308,7 +1368,6 @@ async function syncCycle(reason,force){
     else if(e instanceof TypeError||!navigator.onLine) setY('offline');
     else setY('error','동기화에 실패했어요 ('+(e&&e.code||'알 수 없음')+') · 잠시 뒤 다시 시도해요');
   }
-  Y.running=false;
 }
 async function doSync(force){
   var f=await listFiles();
@@ -1345,24 +1404,19 @@ async function doSync(force){
 function applyRemote(rc,rh){
   var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId;
   var prevText=cur()?cur().text:'';
-  var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length);
+  var dropLocal=!!(S.fresh&&rc&&(rc.docs||[]).length), made=[];
   if(rc&&Y.fromLogin){ keepRemoteOnLogin(rc); }
   if(rc){
     var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
-    (m.conf||[]).forEach(function(c){   // 두 기기가 다르게 고친 회차: 진 쪽 글을 기록에 남기고, 고를 수 있게 알린다
-      var L=c.loser, vv=S.versions.filter(function(x){return x.docId===L.id&&x.text===L.text;})[0];
-      if(!vv){vv={id:uid(),docId:L.id,t:L.updated||Date.now(),title:L.title,text:L.text,reason:'sync'};S.versions.push(vv);}
-      if(!Array.isArray(S.conf)) S.conf=[];
-      if(!S.conf.some(function(k){return k.docId===L.id&&k.vid===vv.id;}))
-        S.conf.push({id:uid(),docId:L.id,vid:vv.id,mine:c.mine,t:Date.now(),wt:c.winner.updated||0,lt:L.updated||0});
-    });
+    (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});   // 두 기기가 다르게 고친 회차 → "제목(1)"로 남김
     if(dropLocal) S.fresh=false;
+    if(dropLocal||Y.fromLogin) S.epoch=uid();   // 이 기기 글을 통째로 바꿨으니 다른 탭은 합치지 말고 새로 열게
   }
   S.versions=mergeHist(S.versions,rh?rh.versions:[],S.tomb);
   if(rc||rh){ migrated=false; S=normalize(S); if(migrated){migrated=false;markDirty();} }
   if(before===sigCore(S)+'#'+sigHist(S)) return;
-  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false);
+  saveLSNow(); refreshAfterRemote(prevActive,prevText); renderConf(false); conflictToast(made);
 }
 
 function refreshAfterRemote(prevActive,prevText){
@@ -1392,7 +1446,7 @@ function keepRemoteOnLogin(rc){
   (rc.docs||[]).forEach(function(d){rd[d.id]=d;}); (rc.works||[]).forEach(function(w){rw[w.id]=w;});
   // 이 기기에서 저절로 생긴 사용 안내(손대지 않은 예시 원고만 든 소설)는 계정 글이 있으면 합치지 않는다
   if((rc.docs||[]).some(function(d){return !d.trashed;})){
-    var SEEDS=[SEED_TEXT,SEED_TEXT2,SEED_TEXT3], drop={};
+    var SEEDS=[SEED_TEXT,SEED_TEXT2,SEED_TEXT3,SEED_TEXT3_OLD], drop={};   // 예전 안내 글도 알아본다
     S.works.forEach(function(w){
       if(rw[w.id]) return;
       var ds=S.docs.filter(function(d){return d.workId===w.id;});
@@ -1409,6 +1463,29 @@ function keepRemoteOnLogin(rc){
   S.docs=S.docs.filter(function(d){ var r=rd[d.id]; return !(r&&d.trashed&&!r.trashed); });
   S.works=S.works.filter(function(w){ var r=rw[w.id]; return !(r&&w.trashed&&!r.trashed); });
   // 지워진 소설 안의 회차가 남아 있으면 드라이브 소설로 이어지도록 그대로 둔다
+}
+
+/* ===== 충돌: 같은 회차를 두 곳(기기·탭)에서 따로 고쳤을 때 =====
+   더 최근에 고친 글은 원래 회차에 두고, 다른 글은 바로 아래 "제목(1)" 회차로 남긴다. */
+function conflictCopy(W,L){
+  if(!W||!L||!L.text||L.text===W.text) return null;
+  var id='c'+String(L.id).slice(-8)+(L.updated||0).toString(36);   // 두 곳에서 같은 충돌을 봐도 하나만 생기게
+  if(S.docs.some(function(d){return d.id===id;})||(S.tomb&&S.tomb[id])) return null;
+  var titles=S.docs.filter(function(d){return d.workId===W.workId&&!d.trashed;}).map(function(d){return d.title;});
+  var base=String(W.title||'제목 없음').replace(/\s+$/,''), n=1;
+  while(titles.indexOf(base+'('+n+')')>=0) n++;
+  var now=Date.now(), c={id:id,workId:W.workId,title:base+'('+n+')',text:L.text,created:W.created||now,updated:now};
+  S.docs.push(c);
+  var w=S.works.find(function(x){return x.id===W.workId;});
+  if(w){
+    var ord=(w.docOrder&&w.docOrder.length?w.docOrder.slice():workDocs(w.id).map(function(d){return d.id;})).filter(function(x){return x!==id;});
+    var i=ord.indexOf(W.id); ord.splice(i<0?ord.length:i+1,0,id); w.docOrder=ord; w.updated=now;
+  }
+  return c;
+}
+function conflictToast(made){
+  if(!made||!made.length) return;
+  toast(made.length>1?'같은 회차를 두 곳에서 고친 글 '+made.length+'개를 "(1)" 회차로 따로 남겼어요':'같은 회차를 두 곳에서 고쳐서, 다른 쪽 글을 「'+made[0].title+'」로 따로 남겼어요');
 }
 /* ===== 충돌: 같은 회차를 두 기기에서 다르게 고쳤을 때 ===== */
 function confList(){
@@ -2609,9 +2686,8 @@ function syncBoardBar(){
   $$('.note',cv).forEach(function(x){x.classList.toggle('msel',!!(UI.msel&&UI.msel[x.getAttribute('data-id')]));});
   var mn=UI.msel?Object.keys(UI.msel).length:0;
   $('#boxBtn').setAttribute('aria-pressed',UI.box?'true':'false');
-  var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'삭제할 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':has?'위쪽 바를 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀌어요.':'포스트잇을 탭해서 고르세요.';
-  var lbl=S.prefs.scope==='work'?'「'+curWork().title+'」 소설 공용 보드':'「'+(cur().title||'제목 없음')+'」 회차 보드';
-  var hb=$('#bdHint'); hb.textContent=''; hb.append(h('span',{class:'hint-b',text:lbl+' · '}),h('span',{class:'hint-t',text:tail}));
+  var tail=UI.box?'고를 영역을 끌어서 그리세요.':UI.bdel?'삭제할 포스트잇을 탭하거나 끌어서 범위로 고르세요. 다시 탭하면 빠져요.':mn?'포스트잇 '+mn+'장을 골랐어요. 아무 포스트잇의 위쪽 바를 끌면 함께 움직여요. 색을 누르면 모두 바뀌어요.':UI.linking?'이을 포스트잇을 계속 탭하세요. ✓가 있는 건 탭하면 끊겨요. 다 이었으면 "연결 끝내기"를 누르세요.':'';   // 평소에는 안내 없음(삭제·연결·범위·여러 장 고른 때만)
+  var hb=$('#bdHint'); hb.textContent=''; if(tail) hb.append(h('span',{class:'hint-t',text:tail}));
   var bar=$('.bd-bar'); bar.classList.toggle('m-del',!!UI.bdel); bar.classList.toggle('m-link',!!UI.linking); bar.classList.toggle('m-box',!!UI.box); bar.classList.toggle('m-msel',mn>1);
 }
 function drawLinks(){
@@ -3168,7 +3244,7 @@ function bindOnce(){
   $('#openTrash').addEventListener('click',openTrash);
   $('#openSet').addEventListener('click',openSet);
   $('#addGuide').addEventListener('click',addGuide);
-  bindFocus(); bindSearch();
+  bindFocus(); bindSearch(); bindTabs();
   $('#bkOut').addEventListener('click',exportBackup);
   $('#bkIn').addEventListener('click',function(){$('#bkFile').click();});
   $('#bkFile').addEventListener('change',function(){readBackup(this.files&&this.files[0]);});
@@ -3317,7 +3393,7 @@ function boot(){
   loadAuth();
   var ls=loadLS();
   if(ls) S=normalize(ls); else {S=normalize(seed());}
-  bindOnce(); showAll();
+  tabInit(); bindOnce(); showAll();
   bootDone=true; purgeExpired(); saveLSNow(); renderConf(false);
   renderAcctBtn(); initTc();
   if(A.on){ if(Date.now()>A.exp){setY('reauth');silentRenew('boot');} else {syncNow('launch',true);scheduleRenew();} }
