@@ -381,7 +381,7 @@ button:focus-visible,.btn:focus-visible,.ib:focus-visible,.tab:focus-visible,inp
 .cbx.on,.cbx.mid{background:var(--accent-ink);border-color:var(--accent-ink)}
 .cbx.on:after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .cbx.mid:after{content:"";position:absolute;left:4px;top:8px;width:10px;height:2px;background:var(--surface)}
-.drawer.del .dr-foot,.drawer.del #newWork,.drawer.del .doc-grip{display:none}
+.drawer.del .dr-foot,.drawer.del #newWork,.drawer.del #bugBtn,.drawer.del .doc-grip{display:none}
 .del-bar{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;font-size:13px;min-height:49px}
 .del-bar span{flex:1;min-width:0;color:var(--ink-2)}
 .del-bar[hidden]{display:none}
@@ -569,7 +569,7 @@ body.focus .fz-bar:hover,body.focus .fz-bar:focus-within{opacity:1}
 .ib.arm,.ib.arm:hover,.doc-del.arm,.doc-del.arm:hover,.wk-btn.arm,.wk-btn.arm:hover{background:var(--danger);color:#FBFAF6;border-color:var(--danger)}
 .fpv{word-break:keep-all;overflow-wrap:anywhere}
 /* 서랍 편집 모드 */
-.drawer.editing .dr-foot,.drawer.editing #newWork{display:none}
+.drawer.editing .dr-foot,.drawer.editing #newWork,.drawer.editing #bugBtn{display:none}
 .edit-bar .btn{flex:1;justify-content:center}
 .drawer.editing .wk,.drawer.editing .doc{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y;position:relative}
 .drawer.editing .doc-grip{width:28px;margin-left:0}            /* 눈에 보이는 점은 그대로, 누르는 범위는 넓게 */
@@ -675,6 +675,7 @@ body.focus .f-marks{display:none}
 :root[data-theme="dark"] .beta-note{color:#D9B877}
 /* 튜토리얼 */
 .tq{position:fixed;inset:0;z-index:9000}
+.tq.nohole{background:rgba(20,22,26,.62)}
 .tq-hole{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(20,22,26,.62);pointer-events:none}
 .tq-bub{position:fixed;background:var(--surface);color:var(--ink);border-radius:14px;padding:14px 16px 12px;box-shadow:0 10px 30px rgba(0,0,0,.28);font-size:14.5px;line-height:1.55}
 .tq-bub.wait{visibility:hidden}
@@ -3859,7 +3860,7 @@ boot();
 /* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
    열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
    (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
-var APPVER='53dea95cb3', verAt=0;
+var APPVER='7a882264f2', verAt=0;
 function verCheck(force){
   if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
   if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
@@ -3929,14 +3930,15 @@ function mainSteps(){
     {el:'.tabs', pre:function(){ dr(false)(); if(S.prefs.tab!=='write') setTab('write'); }, t:'쓰기 · 보드 · 기록', d:'원고를 쓰고, 포스트잇으로 구상하고, 예전 글로 되돌려요.'},
     {el:'.wbar .tools', t:'글 쓰는 도구', d:function(){ return legend([[['#undo','#redo'],'되돌리기 · 다시 하기'],[['#fontMinus','#fontPlus'],'글자 작게 · 크게'],[['#fontFace'],'글꼴 바꾸기'],[['#snapBtn'],'지금 글을 기록으로 남기기'],[['#focusBtn'],'집중 모드 (글만 보기)']]); }},
     {el:'#save', t:'자동 저장', d:'쓰는 대로 저장돼요. 저장 버튼은 없어요.'},
-    {el:'#acctBtn', t:'여러 기기에서 쓰기', d:'구글로 로그인하면 여러 기기에서 이어 쓸 수 있어요.'},
+    {el:'#acctBtn', when:function(){ return shown($('#acctBtn')); }, t:'여러 기기에서 쓰기', d:'구글로 로그인하면 여러 기기에서 이어 쓸 수 있어요.'},
     {el:'#openSet', pre:dr(true), t:'설정 · 백업', d:'설정에서 백업 파일을 받아 둘 수 있어요.'},
     {el:'#bugBtn', when:function(){ return !$('#bugBtn').hidden; }, pre:dr(true), t:'버그 · 건의', d:'이상한 점이나 바라는 점은 여기로 알려 주세요.'}
   ];
 }
 function boardSteps(){
   return [
-    {el:'#addNote', t:'새 포스트잇', d:'눌러서 포스트잇을 붙여요. 옆 동그라미로 색을 골라요.'},
+    {el:'#addNote', t:'새 포스트잇', d:'눌러서 포스트잇을 붙여요.'},
+    {el:function(){ return shown($('#sw'))?'#sw':'#swCur'; }, t:'포스트잇 색', d:'새로 붙일 포스트잇의 색을 골라요. 포스트잇을 고른 뒤 누르면 그 포스트잇의 색이 바뀌어요.'},
     {el:['#boxBtn','#linkBtn','#delNote'], t:'포스트잇 관리', d:function(){ return legend([[['#boxBtn'],'범위 선택: 끌어서 여러 장 고르기'],[['#linkBtn'],'연결: 포스트잇끼리 선으로 잇기'],[['#delNote'],'삭제: 골라서 지우기']]); }},
     {el:function(){ return shown($('#scope'))?'#scope':'#scopeBtn'; }, t:'이 회차 · 소설 공용', d:'이 회차에만 쓰는 보드와, 소설 전체가 함께 쓰는 보드를 오가요.'},
     {el:'#cv .note .grip', when:function(){ return !!$('#cv .note .grip'); }, t:'옮기기', d:'포스트잇 윗부분을 잡고 끌면 옮겨져요. 오른쪽 아래 모서리를 끌면 크기가 바뀌어요.'}
@@ -3979,6 +3981,7 @@ function tourShow(){
 }
 function tourPlace(){
   if(!TOUR) return; var T=TOUR, s=T.steps[T.i], ts=tourTargets(s), b=T.bub, hole=T.hole, pad=6;
+  T.q.classList.toggle('nohole',!ts.length);   // 비출 버튼이 없으면 가운데 말풍선 + 뒤 전체를 어둡게
   if(!ts.length){ hole.style.display='none'; b.style.left=Math.max(16,(innerWidth-b.offsetWidth)/2)+'px'; b.style.top=Math.max(16,(innerHeight-b.offsetHeight)/2)+'px'; $('.tq-ar',b).hidden=true; return; }
   var L=1e9,Tp=1e9,R=-1e9,B=-1e9; ts.forEach(function(e){ var r=e.getBoundingClientRect(); L=Math.min(L,r.left);Tp=Math.min(Tp,r.top);R=Math.max(R,r.right);B=Math.max(B,r.bottom); });
   hole.style.display=''; hole.style.left=(L-pad)+'px'; hole.style.top=(Tp-pad)+'px'; hole.style.width=(R-L+pad*2)+'px'; hole.style.height=(B-Tp+pad*2)+'px';
