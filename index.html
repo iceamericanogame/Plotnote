@@ -44,7 +44,10 @@ window.PLOTNOTE_CONFIG = {
   GOOGLE_API_KEY: '',                 // ← (선택) API Key. 보통 비워 두면 돼요
   DRIVE_STORAGE: 'appData',           // 'appData'(숨김 폴더) 또는 'drive'(내 드라이브에 보이게)
   FILE_NAME: 'plotnote_backup.json',  // 드라이브에 만들어질 파일 이름 (기록은 plotnote_backup_history.json)
-  POLL_SECONDS: 20                    // 화면을 보는 동안 다른 기기의 변경을 확인하는 간격(초)
+  POLL_SECONDS: 20,                   // 화면을 보는 동안 다른 기기의 변경을 확인하는 간격(초)
+  // 테스트 기간용: 정식 공개 때는 BETA_NOTE를 false로, FEEDBACK_URL을 ''로 바꾸면 안내 문구·버그/건의 버튼이 사라져요
+  BETA_NOTE: true,                    // 맨 위 "아직 개발 중이에요…" 안내
+  FEEDBACK_URL: 'https://scientific-fireplant-0c9.notion.site/416682119ca78167ab3ec23c262fb14d'   // 목록 위 [버그/건의] 버튼이 여는 주소
 };
 </script>
 
@@ -662,12 +665,20 @@ body.focus .f-marks{display:none}
 .su-warn{font-size:13px;color:#7A5A12;background:#F7EBCF;border:1px solid #E8D29E;border-radius:10px;padding:8px 10px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .su-row b.su-ok{color:#8DBB98}:root:not([data-theme="light"]) .su-warn{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}}
 :root[data-theme="dark"] .su-row b.su-ok{color:#8DBB98}:root[data-theme="dark"] .su-warn{background:#4A3F22;color:#F1E3BE;border-color:#6A5A2E}
+/* 테스트 기간용: 안내 문구 · 버그/건의 버튼 */
+.beta-note{text-align:center;color:#8A6A2A;font-size:12px;line-height:1.4;padding:0 8px 4px;flex:none}
+.top .beta-note{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;padding:0 12px}   /* 자리가 넉넉하면 로고와 저장 상태 사이에 */
+.top.beta-in .spacer{display:none}
+.bug-btn{margin-left:auto;font-weight:600;text-decoration:none;white-space:nowrap}
+.bug-btn[hidden]{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .beta-note{color:#D9B877}}
+:root[data-theme="dark"] .beta-note{color:#D9B877}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <aside class="drawer" id="drawer" aria-label="회차 목록">
-    <div class="dr-head"><h2 id="drT">내 소설</h2><div class="dr-act"><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
+    <div class="dr-head"><h2 id="drT">내 소설</h2><a class="btn sm accent bug-btn" id="bugBtn" target="_blank" rel="noopener" hidden>버그/건의</a><div class="dr-act"><button class="btn sm" id="newWork"><span data-ico="plus"></span>새 소설</button></div></div>
     <div class="sr-box" id="srBox"><span data-ico="search"></span><input class="sr-in" id="srIn" type="text" enterkeyhint="search" placeholder="검색" aria-label="검색" autocomplete="off" spellcheck="false"><button class="sr-x" id="srX" aria-label="검색어 지우기" data-ico="x" hidden></button></div>
     <ul class="docs" id="docList"></ul>
     <div class="del-bar edit-bar" id="editBar" hidden><button class="btn sm accent" id="editDone">완료</button></div>
@@ -689,6 +700,7 @@ body.focus .f-marks{display:none}
       <div class="save" id="save" data-s="local" aria-live="polite" role="button" tabindex="0"><i class="dot"></i><span id="saveTxt">불러오는 중…</span></div>
       <button class="acct" id="acctBtn" aria-label="구글 로그인"></button>
     </header>
+    <div class="beta-note" id="betaNote" hidden>아직 개발 중이에요. 글이 사라질 수 있으니 자주 백업해 주세요.</div>
     <div class="save-fail" id="saveFail" role="alert" hidden><span id="saveFailTxt"></span><button class="btn sm" id="saveFailBk"><span data-ico="download"></span>백업 받기</button></div>
     <div class="store-note" id="verBanner" hidden><span>새 버전이 나왔어요.</span><button id="verBtn">새로고침</button></div>
     <div class="store-note" id="reBanner" hidden><span id="reTxt">구글 연결이 끊겼어요. 글은 이 기기에 계속 저장되고 있어요.</span><button id="reBtn">다시 연결</button></div>
@@ -3774,7 +3786,7 @@ function boot2(ls){
   applyCur(); tabInit(); bindOnce(); showAll();
   // 브라우저가 저장 공간이 부족할 때 이 사이트 글을 지우지 않도록 요청(파이어폭스는 창이 떠서 하지 않음)
   try{ if(navigator.storage&&navigator.storage.persist&&!/Firefox/.test(navigator.userAgent)) navigator.storage.persisted().then(function(p){if(!p)navigator.storage.persist();}).catch(function(){}); }catch(_){}
-  bootDone=true; purgeExpired(); saveLSNow(); renderConf(false); bindVer();
+  bootDone=true; purgeExpired(); saveLSNow(); renderConf(false); bindVer(); bindBeta();
   renderAcctBtn(); initTc();
   if(A.on){ if(Date.now()>A.exp){setY('reauth');silentRenew('boot');} else {syncNow('launch',true);scheduleRenew();} }
   else if(!isGuest()) showGate('login');
@@ -3815,7 +3827,7 @@ boot();
 /* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
    열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
    (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
-var APPVER='147944621b', verAt=0;
+var APPVER='fc99a8f76d', verAt=0;
 function verCheck(force){
   if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
   if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
@@ -3833,6 +3845,33 @@ function bindVer(){
   setTimeout(function(){verCheck(true);},8000);
   setInterval(function(){verCheck(true);},30*60000);
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') verCheck(false); });
+}
+/* ---------- 테스트 기간용: 안내 문구 + 버그/건의 버튼 (설정은 맨 위 PLOTNOTE_CONFIG) ----------
+   안내 문구는 로고와 저장 상태 사이에 한 줄로 다 들어가면 거기에, 아니면 그 아래 줄에 둔다.
+   화면 너비·저장 상태 글자 길이가 바뀔 때마다 다시 맞춘다. */
+var betaW=0;
+function betaNeed(n){   // 안내 문구를 한 줄로 쓸 때 필요한 너비
+  if(betaW) return betaW;
+  var m=document.createElement('span'); m.textContent=n.textContent; m.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font-size:12px';
+  document.body.appendChild(m); betaW=Math.ceil(m.getBoundingClientRect().width)+24+8; m.remove(); return betaW;
+}
+function betaFit(){
+  var n=$('#betaNote'), t=$('.top'); if(!n||n.hidden||!t) return;
+  var used=0, cs=getComputedStyle(t), gap=parseFloat(cs.columnGap||cs.gap)||8, k=0;
+  Array.prototype.forEach.call(t.children,function(c){ if(c===n||c.classList.contains('spacer')||getComputedStyle(c).display==='none') return; used+=c.getBoundingClientRect().width; k++; });
+  var avail=t.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-used-gap*k;
+  var inside=avail>=betaNeed(n);
+  if(inside&&n.parentNode!==t){ t.insertBefore(n,t.querySelector('.spacer')); t.classList.add('beta-in'); }
+  else if(!inside&&n.parentNode===t){ t.after(n); t.classList.remove('beta-in'); }
+}
+function bindBeta(){
+  var url=String(CFG.FEEDBACK_URL||''), b=$('#bugBtn');
+  if(b&&/^https:\/\//.test(url)){ b.href=url; b.hidden=false; }
+  var n=$('#betaNote'); if(!n||!CFG.BETA_NOTE) return;
+  n.hidden=false; betaFit();
+  if(window.ResizeObserver){ var ro=new ResizeObserver(function(){ betaFit(); }); ro.observe($('.top')); ro.observe($('#save')); ro.observe($('#acctBtn')); }
+  else window.addEventListener('resize',betaFit);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ betaW=0; betaFit(); });
 }
 })();
 </script>
