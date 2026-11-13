@@ -3,7 +3,7 @@
    - 아이콘 등 같은 사이트 파일: 저장본 우선.
    - 글꼴: 한 번 받은 건 저장해 두고 오프라인에서도 쓴다.
    - 구글 로그인·드라이브 요청은 건드리지 않는다(항상 인터넷으로). */
-var VERSION='7a882264f2';
+var VERSION='1b2349e8bd';
 var CORE='plotnote-core-'+VERSION, FONTS='plotnote-fonts-v1';
 var CORE_FILES=['./','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 
@@ -19,7 +19,10 @@ function isFont(u){return /^(fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsd
 self.addEventListener('fetch',function(e){
   var r=e.request; if(r.method!=='GET') return;
   var u=new URL(r.url);
-  if(r.mode==='navigate'&&u.origin===location.origin){ e.respondWith(pageFirstNet(r)); return; }
+  if(r.mode==='navigate'&&u.origin===location.origin){
+    if(/\/(index\.html)?$/.test(u.pathname)) e.respondWith(pageFirstNet(r));   // 앱 화면
+    return;   // 다른 페이지(개인정보처리방침 등)는 그대로 인터넷으로. 앱 저장본을 덮어쓰지 않게
+  }
   if(u.origin===location.origin&&/\/sw\.js$/.test(u.pathname)) return;   // 새 버전 확인은 언제나 인터넷으로
   if(u.origin===location.origin){
     e.respondWith(caches.match(r,{ignoreSearch:true}).then(function(m){
