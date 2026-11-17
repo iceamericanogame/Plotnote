@@ -1035,6 +1035,10 @@ function mergeBoard(l,r,opt){
   });
   return {board:{notes:notes,links:links,updated:Math.max(lu,ru),gone:gone,lgone:lg},nconf:nconf};
 }
+/* 드라이브와 합칠 때 "이미 아는 글"의 기준 시각: 마지막으로 드라이브와 맞춘 시각(since)과
+   이 기기가 그 회차를 드라이브에 올린 버전의 시각(mine) 중 늦은 쪽.
+   올린 뒤 완료 응답을 받기 전에 페이지가 멈추면 since가 예전 값으로 남아, 내가 올린 글을 다른 곳의 글로 착각했다. */
+function knownAt(opt,id){ var m=opt.mine&&opt.mine[id]; return Math.max(opt.since||0, typeof m==='number'?m:0); }
 function mergeCore(local,rem,opt){
   opt=opt||{}; local=local||{}; rem=rem||{};
   var tomb=Object.assign({},rem.tomb||{}), lt=local.tomb||{};
@@ -1047,7 +1051,7 @@ function mergeCore(local,rem,opt){
     var tie=(loser.updated||0)===(winner.updated||0);   // 같은 순간에 서로 다르게 고침 → 언제나 충돌
     if(!tie){
       if(opt.base){ var b=opt.base[loser.id]; if(b==null||(loser.updated||0)<=b) return; }   // 탭끼리: 마지막으로 본 뒤에 고친 글만 충돌
-      else if(opt.since&&(loser.updated||0)<=opt.since) return;   // 이미 한 번 받아 본 글이면 충돌이 아님
+      else if((loser.updated||0)<=knownAt(opt,loser.id)) return;   // 이미 한 번 받아 본 글이거나 이 기기가 직접 올린 버전이면 충돌이 아님
     }
     over.push(loser); conf.push({loser:loser,winner:winner,mine:mine});
   });
@@ -1055,7 +1059,7 @@ function mergeCore(local,rem,opt){
   var rescue=[];
   (opt.dropLocal?[]:(local.docs||[])).forEach(function(x){
     if(!x||!x.id||!tomb[x.id]||lt[x.id]||x.trashed||!String(x.text||'').trim()) return;
-    var u=x.updated||0, ed=opt.base?(opt.base[x.id]==null||u>opt.base[x.id]):(opt.since?u>opt.since:false);
+    var u=x.updated||0, ed=opt.base?(opt.base[x.id]==null||u>opt.base[x.id]):(opt.since?u>knownAt(opt,x.id):false);
     if(ed) rescue.push({doc:x,work:(local.works||[]).find(function(w){return w.id===x.workId;})||null});
   });
   var works=mergeById(lw,rem.works,tomb);
@@ -1618,7 +1622,7 @@ async function onToken(resp){
 function logout(wipe){
   try{if(A.tok&&window.google&&google.accounts.oauth2.revoke) google.accounts.oauth2.revoke(A.tok,function(){});}catch(_){}
   A={on:false,email:'',name:'',picture:'',tok:'',exp:0,since:0};
-  try{localStorage.removeItem(AKEY);}catch(_){}
+  try{localStorage.removeItem(AKEY);localStorage.removeItem(KEY+':mine');}catch(_){}
   Y.ver={core:null,hist:null}; Y.rsig={core:'',hist:''}; Y.pending=null; Y.err=''; Y.askLeave=false; Y.leaving=false;
   clearTimeout(syncT); clearTimeout(syncMaxT); clearTimeout(histT); syncT=syncMaxT=histT=0;
   if(wipe){
@@ -1738,6 +1742,7 @@ async function doSync(force){
   var wrote=false;
   if(sigCore(S)!==Y.rsig.core||!f.core){
     var p=corePayload(), rs=sigCore(p), res;
+    mineMark(p);   // 응답을 기다리지 않고 먼저 적는다: 응답이 사라져도(페이지가 멈춤) 내가 올린 버전임을 안다
     res=f.core?await updateFile(f.core.id,p):await createFile(FILE_CORE,p);
     f.core=res; Y.ver.core=res.version; Y.rsig.core=rs; wrote=true; S.fresh=false;
     // 드라이브에 올린 글은 이 탭이 이미 아는 글: 같은 기기의 다른 탭이 그 글을 되돌려 줘도 충돌로 보지 않는다
@@ -1755,6 +1760,15 @@ async function doSync(force){
   if(wrote) saveLS();
   Y.fromLogin=false;
 }
+/* 이 기기가 드라이브에 올린 회차 버전(회차 id → 그 글의 수정 시각). 계정별로 따로, 같은 기기의 탭끼리 함께 쓴다 */
+var MINEKEY=KEY+':mine';
+function mineLoad(){ try{ var o=JSON.parse(localStorage.getItem(MINEKEY)||'null'); return o&&o.email===A.email&&o.m?o.m:{}; }catch(_){ return {}; } }
+function mineMark(p){
+  var m=mineLoad(), ids={};
+  (p.docs||[]).forEach(function(d){ if(!d||!d.id) return; ids[d.id]=1; var u=d.updated||0; if(!(m[d.id]>=u)) m[d.id]=u; });
+  Object.keys(m).forEach(function(k){ if(!ids[k]) delete m[k]; });   // 없어진 회차는 정리
+  try{ localStorage.setItem(MINEKEY,JSON.stringify({email:A.email,m:m})); }catch(_){}
+}
 // 드라이브에서 받은 내용을 이 기기 데이터와 합친다 (항목별로 최종 수정 시각이 더 늦은 쪽이 이긴다)
 function applyRemote(rc,rh){
   var before=sigCore(S)+'#'+sigHist(S), prevActive=S.activeId, prevEpoch=S.epoch;
@@ -1764,7 +1778,7 @@ function applyRemote(rc,rh){
   if(rc){
     // 마지막으로 드라이브와 맞춘 시각: 같은 기기의 다른 탭이 더 최근에 맞췄으면 그 시각을 쓴다(오래된 기준으로 내 글끼리 충돌로 보지 않게)
     try{ var aa=JSON.parse(localStorage.getItem(AKEY)||'null'); if(aa&&aa.email===A.email&&aa.since>A.since) A.since=aa.since; }catch(_){}
-    var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since});
+    var m=mergeCore(S,rc,{dropLocal:dropLocal,since:A.since,mine:mineLoad()});
     S.docs=m.docs; S.works=m.works; S.boards=m.boards; S.tomb=pruneTomb(m.tomb,Date.now(),60);
     (m.conf||[]).forEach(function(c){var cp=conflictCopy(c.winner,c.loser);if(cp)made.push(cp);});   // 두 기기가 다르게 고친 회차 → "제목_(자동저장)"으로 남김
     rs=rescueCopies(m.rescue);
@@ -2831,6 +2845,7 @@ function edChanged(ev){
   endFind();   // 글을 고치면 찾기는 끝
   d.text=ed.value; d.updated=Date.now(); delete d.example;
   fitFast(ev); persistDoc(d); snapTick(d); uhPush(); idleUI(d); edMode();
+  if(ed.value.length<=LONGED&&(ed.selectionEnd>=ed.value.length||(ev&&/^insert(Paragraph|LineBreak)/.test(ev.inputType)))) keepCaretSoon();   // 글 끝·엔터는 바로, 나머지는 잠깐 멈췄을 때
 }
 function edBefore(ev){
   if(ev.inputType==='historyUndo'){ev.preventDefault();uhGo(-1);}
@@ -2847,6 +2862,7 @@ function edMode(){
 }
 function edBind(){
   ['keyup','compositionend','paste','cut','drop','blur'].forEach(function(t){ ed.addEventListener(t,edSoon); });
+  ed.addEventListener('keyup',function(ev){ if(!EDLONG&&/^(Arrow(Up|Down)|Page(Up|Down))$/.test(ev.key)) keepCaretSoon(); });   // 화살표로 커서를 옮길 때도 보이게
   edMode();
 }
 /* ---------- 실행 취소 / 다시 실행 (버튼을 눌러도 키보드가 올라오지 않는다) ---------- */
@@ -2880,23 +2896,49 @@ function uhGo(dir){
   sc.scrollTop=top;   // 보던 화면 그대로
   uhShow(pos);
 }
+// 커서(pos) 자리의 줄 위치: 글 칸 바깥 스크롤 칸(.sheet-scroll) 기준 y와 줄 높이
+function caretBox(pos){
+  var sc=ed.parentNode, cs=getComputedStyle(ed), lh=parseFloat(cs.lineHeight)||parseFloat(cs.fontSize)*1.8||30;
+  if(pos>=ed.value.length){   // 글 끝(가장 흔한 경우): 글 칸의 아래 끝에서 바로 구한다(무겁게 재지 않음). 긴 회차는 아래 여유 칸만큼 뺀다
+    return {y:ed.offsetTop+ed.offsetHeight-(parseFloat(cs.paddingBottom)||0)-(ed.value.length>LONGED?fitEd.extra||0:0)-lh, lh:lh};
+  }
+  var m=document.createElement('div');
+  ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','wordSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','textIndent','wordBreak','overflowWrap','tabSize','textAlign','fontFeatureSettings','fontKerning','boxSizing','borderTopWidth','borderLeftWidth','borderRightWidth'].forEach(function(k){ m.style[k]=cs[k]; });
+  m.style.cssText+=';position:absolute;visibility:hidden;white-space:pre-wrap;left:0;top:0;width:'+ed.offsetWidth+'px';
+  m.textContent=ed.value.slice(0,pos); var mk=document.createElement('span'); mk.textContent='\u200b'; m.appendChild(mk);
+  sc.appendChild(m); var y=ed.offsetTop+mk.offsetTop, h=mk.offsetHeight||lh; m.remove();
+  return {y:y, lh:h};
+}
 // 고친 자리가 지금 화면 밖이면 그 줄이 보이게만 옮긴다(화면 안이면 그대로)
 function uhShow(pos){
   var sc=ed.parentNode; if(!ed.getClientRects().length) return;
-  var cs=getComputedStyle(ed), m=document.createElement('div');
-  ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','wordSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','textIndent','wordBreak','overflowWrap','tabSize','textAlign','fontFeatureSettings','fontKerning','boxSizing','borderTopWidth','borderLeftWidth','borderRightWidth'].forEach(function(k){ m.style[k]=cs[k]; });
-  m.style.cssText+=';position:absolute;visibility:hidden;white-space:pre-wrap;left:0;top:0;width:'+ed.offsetWidth+'px';
-  m.textContent=ed.value.slice(0,pos); var mk=document.createElement('span'); mk.textContent='​'; m.appendChild(mk);
-  sc.appendChild(m); var y=ed.offsetTop+mk.offsetTop, lh=mk.offsetHeight||20; m.remove();
+  var b=caretBox(pos), y=b.y, lh=b.lh;
   var pad=Math.min(80,sc.clientHeight/4);
   if(y<sc.scrollTop+pad||y+lh>sc.scrollTop+sc.clientHeight-pad) sc.scrollTop=Math.max(0,y-sc.clientHeight/2);
 }
+/* 칠 때 커서가 늘 보이게: 아이패드 사파리는 엔터로 글 칸이 늘어나도 바깥 종이(.sheet-scroll)를 내려 주지 않아서
+   커서가 글자 수 줄 아래로 빠져 보인다 → 커서 줄이 보이는 칸 아래 끝(화면 키보드가 있으면 그 위)에 닿으면 그만큼만 내린다. */
+function keepCaret(){
+  if(document.activeElement!==ed||!ed.getClientRects().length) return;
+  if(ed.selectionStart!==ed.selectionEnd) return;   // 범위를 고르는 중이면 건드리지 않음
+  if(ed.value.length>LONGED&&ed.selectionEnd<ed.value.length) return;   // 아주 긴 회차는 글 끝에서만(중간 자리를 재면 무겁다)
+  var sc=ed.parentNode, b=caretBox(ed.selectionEnd), r=sc.getBoundingClientRect(), vv=window.visualViewport;
+  var bottom=Math.min(r.bottom, vv?vv.offsetTop+vv.height:window.innerHeight), h=bottom-r.top;
+  if(h<b.lh*2) return;
+  var pad=Math.min(b.lh, h/4);
+  if(b.y+b.lh+pad>sc.scrollTop+h) sc.scrollTop=b.y+b.lh+pad-h;
+  else if(b.y<sc.scrollTop) sc.scrollTop=Math.max(0,b.y-pad);
+}
+var kcRaf=0;
+function keepCaretSoon(){ cancelAnimationFrame(kcRaf); kcRaf=requestAnimationFrame(keepCaret); }
+window.__pn.caretBox=caretBox; window.__pn.keepCaret=keepCaret;   // 시험용
 function fitEd(){
   var sh=ed.parentNode;
   if(!sh||!ed.getClientRects().length){fitEd.pending=true;return;}   // 안 보이는 동안 재면 0이 되므로, 보일 때 다시 잰다
   fitEd.pending=false;
   var top=sh.scrollTop;
-  ed.style.height='auto'; ed.style.height=(ed.scrollHeight+(ed.value.length>LONGED?Math.round(sh.clientHeight*0.5):0))+'px';   // 아주 긴 회차는 아래에 여유 칸을 둔다
+  fitEd.extra=ed.value.length>LONGED?Math.round(sh.clientHeight*0.5):0;
+  ed.style.height='auto'; ed.style.height=(ed.scrollHeight+fitEd.extra)+'px';   // 아주 긴 회차는 아래에 여유 칸을 둔다
   sh.scrollTop=top;
   if(FIND.on) hlRender();
 }
@@ -2904,14 +2946,14 @@ function fitEd(){
 // 아주 긴 회차(10만 자 넘음)는 칠 때마다 높이를 재면(글 전체 줄바꿈을 다시 계산) 휴대폰에서 멈칫한다 → 손을 멈췄을 때만 잰다
 var LONGED=100000, longT=0;
 function fitFast(ev){
-  if(ed.value.length>LONGED){ clearTimeout(longT); longT=setTimeout(fitEd,1200); return; }
+  if(ed.value.length>LONGED){ clearTimeout(longT); longT=setTimeout(function(){ fitEd(); keepCaret(); },1200); return; }
   var t=ev&&ev.inputType||'';
   if(/^delete|^history/.test(t)) return;
   if(ed.scrollHeight>ed.clientHeight+1) ed.style.height=ed.scrollHeight+'px';
 }
 // 글자 수·목록 숫자·칸 높이 맞추기는 0.25초 쉬었을 때 한 번만
 var idleT=0;
-function idleUI(d){ clearTimeout(idleT); idleT=setTimeout(function(){ updateStats(); if(d&&cur()===d) updateRow(d); },EDLONG?1200:250); }   // 아주 긴 회차는 손을 멈췄을 때만
+function idleUI(d){ clearTimeout(idleT); idleT=setTimeout(function(){ updateStats(); if(d&&cur()===d) updateRow(d); if(!EDLONG&&(ed.value.length<=20000||ed.selectionEnd>=ed.value.length)) keepCaret(); },EDLONG?1200:250); }   // 아주 긴 회차는 손을 멈췄을 때만
 function fitWatch(){
   var w0=-1, raf=0;
   function soon(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(function(){ if(typeof ed!=='undefined'&&ed) fitEd(); }); }
@@ -2927,10 +2969,25 @@ function fitWatch(){
   }
 }
 var FONTS=[
-  {k:'serif',n:'노토 세리프',s:'명조',d:'기본',f:'var(--f-write)'},
-  {k:'batang',n:'고운 바탕',s:'바탕',d:'부드러운 명조',f:"'Gowun Batang','Noto Serif KR',serif"},
-  {k:'dodum',n:'고운 돋움',s:'돋움',d:'부드러운 고딕',f:"'Gowun Dodum','Pretendard Variable',Pretendard,sans-serif"},
-  {k:'sans',n:'프리텐다드',s:'고딕',d:'깔끔한 고딕',f:'var(--f-ui)'}];
+  {k:'serif',n:'노토 세리프',s:'명조',d:'기본',f:'var(--f-write)',fam:'Noto Serif KR'},
+  {k:'batang',n:'고운 바탕',s:'바탕',d:'부드러운 명조',f:"'Gowun Batang','Noto Serif KR',serif",fam:'Gowun Batang'},
+  {k:'dodum',n:'고운 돋움',s:'돋움',d:'부드러운 고딕',f:"'Gowun Dodum','Pretendard Variable',Pretendard,sans-serif",fam:'Gowun Dodum'},
+  {k:'sans',n:'프리텐다드',s:'고딕',d:'깔끔한 고딕',f:'var(--f-ui)',fam:'Pretendard Variable'}];
+/* 글꼴 미리 받기: 구글 글꼴은 한글을 100여 묶음으로 나눠 처음 나온 글자의 묶음만 받는다.
+   한글을 조합하는 중에 거쳐 가는 드문 글자(않을 칠 때의 '안' 다음 '않' 같은)는 묶음이 아직 없어 기본 글꼴로 보였다가 완성되면 바뀐다.
+   → 고른 글쓰기 글꼴의 한글 전부(본문·제목 굵기)를 한가할 때 한 번 받아 둔다. 받은 건 오프라인 저장(sw.js)에 남는다.
+   한자 묶음은 받지 않는다. 데이터 절약 모드면 받지 않는다. */
+var HANGUL_ALL=null, fontPre={};
+function preloadFont(F){
+  if(!document.fonts||!document.fonts.load||!F||!F.fam||fontPre[F.fam]) return;
+  try{ if(navigator.connection&&navigator.connection.saveData) return; }catch(_){}
+  fontPre[F.fam]=1;
+  var go=function(){
+    if(!HANGUL_ALL){ var t='',i; for(i=0x3131;i<=0x318E;i++) t+=String.fromCharCode(i); for(i=0xAC00;i<=0xD7A3;i++) t+=String.fromCharCode(i); HANGUL_ALL=t; }   // 자음·모음 + 한글 11,172자
+    ['400','600'].forEach(function(w){ try{ document.fonts.load(w+' 16px "'+F.fam+'"',HANGUL_ALL).catch(function(){}); }catch(_){} });
+  };
+  if(window.requestIdleCallback) requestIdleCallback(go,{timeout:5000}); else setTimeout(go,1500);
+}
 function fontOf(k){for(var i=0;i<FONTS.length;i++) if(FONTS[i].k===k) return FONTS[i]; return FONTS[0];}
 var fMenu=null, fAnchor=null;
 function closeFMenu(){
@@ -2977,6 +3034,7 @@ function applyPrefs(){
   $('#fontFace').textContent=F.s; $('#fontFace').style.fontFamily=F.f;
   var fl=$('#fontSelL'); if(fl){fl.textContent=F.n; fl.style.fontFamily=F.f;}
   var fp=$('#fontPv'); if(fp) fp.style.fontFamily=F.f;
+  if(bootDone) preloadFont(F); else setTimeout(function(){ preloadFont(fontOf(S.prefs.font)); },3000);   // 처음 열 땐 화면이 다 뜬 뒤에
 }
 function updateStats(){
   fitEd();
@@ -4042,7 +4100,7 @@ boot();
 /* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
    열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
    (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
-var APPVER='423814b4be', verAt=0;
+var APPVER='c4afe2af11', verAt=0;
 function verCheck(force){
   if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
   if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
