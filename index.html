@@ -2862,7 +2862,11 @@ function edMode(){
 }
 function edBind(){
   ['keyup','compositionend','paste','cut','drop','blur'].forEach(function(t){ ed.addEventListener(t,edSoon); });
-  ed.addEventListener('keyup',function(ev){ if(!EDLONG&&/^(Arrow(Up|Down)|Page(Up|Down))$/.test(ev.key)) keepCaretSoon(); });   // 화살표로 커서를 옮길 때도 보이게
+  ed.addEventListener('keyup',function(ev){ if(!EDLONG&&/^Arrow(Up|Down)$/.test(ev.key)) keepCaretSoon(); });   // 화살표로 커서를 옮길 때도 보이게(Page Up/Down은 따로)
+  ed.addEventListener('keydown',function(ev){   // Page Up/Down: 종이와 커서를 함께 한 화면씩(Shift 등과 함께면 브라우저 기본)
+    if((ev.key!=='PageDown'&&ev.key!=='PageUp')||ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey||ev.isComposing) return;
+    ev.preventDefault(); pageMove(ev.key==='PageDown'?1:-1);
+  });
   edMode();
 }
 /* ---------- 실행 취소 / 다시 실행 (버튼을 눌러도 키보드가 올라오지 않는다) ---------- */
@@ -2931,7 +2935,54 @@ function keepCaret(){
 }
 var kcRaf=0;
 function keepCaretSoon(){ cancelAnimationFrame(kcRaf); kcRaf=requestAnimationFrame(keepCaret); }
-window.__pn.caretBox=caretBox; window.__pn.keepCaret=keepCaret;   // 시험용
+window.__pn.caretBox=caretBox; window.__pn.keepCaret=keepCaret; window.__pn.pageMove=function(d){pageMove(d);};   // 시험용
+/* Page Up/Down: 워드처럼 종이를 한 화면(두 줄 겹치게)만큼 넘기고, 커서도 같은 높이만큼 옮겨 화면 속 같은 자리에 둔다.
+   글 칸은 글 길이만큼 늘어나 있어서 브라우저 기본 동작으로는 종이가 안 넘어가거나 커서가 제자리에 남는다.
+   커서 자리↔글자 위치는 글을 문단별로 따라 그린 칸에서 한 번만 배치하고 찾는다(긴 회차도 키를 누를 때 한 번). */
+function pageMap(){
+  var sc=ed.parentNode, cs=getComputedStyle(ed), m=document.createElement('div');
+  ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','wordSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','textIndent','wordBreak','overflowWrap','tabSize','textAlign','fontFeatureSettings','fontKerning','boxSizing','borderTopWidth','borderLeftWidth','borderRightWidth','borderTopStyle','borderLeftStyle','borderRightStyle'].forEach(function(k){ m.style[k]=cs[k]; });
+  m.style.cssText+=';position:absolute;visibility:hidden;white-space:pre-wrap;left:'+ed.offsetLeft+'px;top:'+ed.offsetTop+'px;width:'+ed.offsetWidth+'px;border-color:transparent';
+  var paras=ed.value.split('\n'), starts=[], at=0, frag=document.createDocumentFragment();
+  paras.forEach(function(t){ var d=document.createElement('div'); d.textContent=t||'​'; frag.appendChild(d); starts.push(at); at+=t.length+1; });
+  m.appendChild(frag); sc.appendChild(m);
+  var top0=m.getBoundingClientRect().top, kids=m.children, rg=document.createRange();
+  function paraOf(pos){ var lo=0,hi=starts.length-1; while(lo<hi){ var mid=(lo+hi+1)>>1; if(starts[mid]<=pos) lo=mid; else hi=mid-1; } return lo; }
+  function rectAt(k,off){   // 문단 k의 off 자리 글자 상자(줄 위치·가로 위치)
+    var el=kids[k], tn=el.firstChild, len=paras[k].length;
+    if(!len){ var r0=el.getBoundingClientRect(); return {top:r0.top-top0,x:r0.left,h:r0.height}; }
+    if(off<len){ rg.setStart(tn,off); rg.setEnd(tn,off+1); var r=rg.getClientRects()[0]||rg.getBoundingClientRect(); return {top:r.top-top0,x:r.left,h:r.height}; }
+    rg.setStart(tn,len-1); rg.setEnd(tn,len); var rs=rg.getClientRects(), q=rs[rs.length-1]||rg.getBoundingClientRect(); return {top:q.top-top0,x:q.right,h:q.height};
+  }
+  return {
+    yOf:function(pos){ var k=paraOf(pos); return rectAt(k,pos-starts[k]); },
+    posAt:function(y,x){   // 화면 높이 y(글 칸 기준)와 가로 x에 가장 가까운 글자 자리
+      var n=kids.length, lo=0, hi=n-1;
+      if(y<=0) return 0;
+      while(lo<hi){ var mid=(lo+hi+1)>>1; if(kids[mid].offsetTop<=y) lo=mid; else hi=mid-1; }
+      var k=lo, len=paras[k].length; if(!len) return starts[k];
+      var a=0,b=len; while(a<b){ var c=(a+b)>>1, rc=rectAt(k,c); if(rc.top+rc.h<=y) a=c+1; else b=c; }   // 그 높이의 줄 첫 글자
+      var lineTop=rectAt(k,Math.min(a,len)).top, best=a, bd=Infinity;
+      for(var i=a;i<=len;i++){ var ri=rectAt(k,i); if(i<len&&ri.top>lineTop+1) break; var dd=Math.abs(ri.x-x); if(dd<bd){bd=dd;best=i;} if(i<len&&ri.x>x) break; }
+      return starts[k]+best;
+    },
+    done:function(){ m.remove(); }
+  };
+}
+function pageMove(dir){
+  var sc=ed.parentNode, r=sc.getBoundingClientRect(), vv=window.visualViewport;
+  var h=Math.min(r.bottom, vv?vv.offsetTop+vv.height:window.innerHeight)-r.top;
+  var lh=parseFloat(getComputedStyle(ed).lineHeight)||30, step=Math.max(lh, h-lh*2);
+  var mp=pageMap();
+  try{
+    var c=mp.yOf(ed.selectionEnd), maxTop=Math.max(0,sc.scrollHeight-sc.clientHeight);
+    var newTop=Math.max(0,Math.min(maxTop,sc.scrollTop+dir*step)), moved=newTop-sc.scrollTop;
+    // 종이가 넘어간 만큼 커서도 옮긴다(끝에 가까우면 덜 넘어간 만큼만) · 더 넘길 데가 없으면 글 처음/끝으로
+    var pos=Math.abs(moved)<1 ? (dir>0?ed.value.length:0) : mp.posAt(c.top+moved+c.h/2,c.x);
+    ed.setSelectionRange(pos,pos);
+    sc.scrollTop=newTop;
+  } finally { mp.done(); }
+}
 function fitEd(){
   var sh=ed.parentNode;
   if(!sh||!ed.getClientRects().length){fitEd.pending=true;return;}   // 안 보이는 동안 재면 0이 되므로, 보일 때 다시 잰다
@@ -4100,7 +4151,7 @@ boot();
 /* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
    열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
    (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
-var APPVER='c4afe2af11', verAt=0;
+var APPVER='ed661162b9', verAt=0;
 function verCheck(force){
   if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
   if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
