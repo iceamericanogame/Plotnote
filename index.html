@@ -2863,8 +2863,9 @@ function edMode(){
 function edBind(){
   ['keyup','compositionend','paste','cut','drop','blur'].forEach(function(t){ ed.addEventListener(t,edSoon); });
   ed.addEventListener('keyup',function(ev){ if(!EDLONG&&/^Arrow(Up|Down)$/.test(ev.key)) keepCaretSoon(); });   // 화살표로 커서를 옮길 때도 보이게(Page Up/Down은 따로)
+  ['wheel','touchstart','mousedown'].forEach(function(t){ ed.parentNode.addEventListener(t,pageStop,{passive:true}); });   // 손으로 스크롤하면 미끄러짐을 멈춤
   ed.addEventListener('keydown',function(ev){   // Page Up/Down: 종이와 커서를 함께 한 화면씩(Shift 등과 함께면 브라우저 기본)
-    if((ev.key!=='PageDown'&&ev.key!=='PageUp')||ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey||ev.isComposing) return;
+    if((ev.key!=='PageDown'&&ev.key!=='PageUp')||ev.shiftKey||ev.altKey||ev.metaKey||ev.ctrlKey||ev.isComposing){ if(pgAnim) pageStop(); return; }   // 다른 키(글 치기 등)를 누르면 미끄러짐을 멈춤 · input 알림은 긴 글에서 크롬을 느리게 해서 쓰지 않음
     ev.preventDefault(); pageMove(ev.key==='PageDown'?1:-1);
   });
   edMode();
@@ -2938,12 +2939,13 @@ function keepCaretSoon(){ cancelAnimationFrame(kcRaf); kcRaf=requestAnimationFra
 window.__pn.caretBox=caretBox; window.__pn.keepCaret=keepCaret; window.__pn.pageMove=function(d){pageMove(d);};   // 시험용
 /* Page Up/Down: 워드처럼 종이를 한 화면(두 줄 겹치게)만큼 넘기고, 커서도 같은 높이만큼 옮겨 화면 속 같은 자리에 둔다.
    글 칸은 글 길이만큼 늘어나 있어서 브라우저 기본 동작으로는 종이가 안 넘어가거나 커서가 제자리에 남는다.
-   커서 자리↔글자 위치는 글을 문단별로 따라 그린 칸에서 한 번만 배치하고 찾는다(긴 회차도 키를 누를 때 한 번). */
-function pageMap(){
+   커서 자리↔글자 위치는 커서 앞뒤 몇 화면 분량의 글만 따라 그린 칸에서 찾는다(회차가 아무리 길어도, 한 문단이 아주 길어도 누를 때마다 같은 양만).
+   종이는 0.36초 동안 부드럽게 미끄러진다(천천히 출발해 천천히 멈춤, 미끄러지는 중에 또 누르면 출발 없이 이어서). 기기의 "동작 줄이기"가 켜져 있으면 바로 넘어간다. */
+function pageMap(from,to){
   var sc=ed.parentNode, cs=getComputedStyle(ed), m=document.createElement('div');
-  ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','wordSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','textIndent','wordBreak','overflowWrap','tabSize','textAlign','fontFeatureSettings','fontKerning','boxSizing','borderTopWidth','borderLeftWidth','borderRightWidth','borderTopStyle','borderLeftStyle','borderRightStyle'].forEach(function(k){ m.style[k]=cs[k]; });
-  m.style.cssText+=';position:absolute;visibility:hidden;white-space:pre-wrap;left:'+ed.offsetLeft+'px;top:'+ed.offsetTop+'px;width:'+ed.offsetWidth+'px;border-color:transparent';
-  var paras=ed.value.split('\n'), starts=[], at=0, frag=document.createDocumentFragment();
+  ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','wordSpacing','paddingRight','paddingLeft','textIndent','wordBreak','overflowWrap','tabSize','textAlign','fontFeatureSettings','fontKerning','boxSizing','borderLeftWidth','borderRightWidth','borderLeftStyle','borderRightStyle'].forEach(function(k){ m.style[k]=cs[k]; });
+  m.style.cssText+=';position:absolute;visibility:hidden;white-space:pre-wrap;left:'+ed.offsetLeft+'px;top:0;width:'+ed.offsetWidth+'px;border-color:transparent;padding-top:0;padding-bottom:0';
+  var paras=ed.value.slice(from,to).split('\n'), starts=[], at=from, frag=document.createDocumentFragment();
   paras.forEach(function(t){ var d=document.createElement('div'); d.textContent=t||'​'; frag.appendChild(d); starts.push(at); at+=t.length+1; });
   m.appendChild(frag); sc.appendChild(m);
   var top0=m.getBoundingClientRect().top, kids=m.children, rg=document.createRange();
@@ -2955,33 +2957,65 @@ function pageMap(){
     rg.setStart(tn,len-1); rg.setEnd(tn,len); var rs=rg.getClientRects(), q=rs[rs.length-1]||rg.getBoundingClientRect(); return {top:q.top-top0,x:q.right,h:q.height};
   }
   return {
-    yOf:function(pos){ var k=paraOf(pos); return rectAt(k,pos-starts[k]); },
-    posAt:function(y,x){   // 화면 높이 y(글 칸 기준)와 가로 x에 가장 가까운 글자 자리
+    yOf:function(pos){ var k=paraOf(pos); return rectAt(k,Math.min(pos-starts[k],paras[k].length)); },
+    posAt:function(y,x){   // 따라 그린 칸 안의 높이 y와 가로 x에 가장 가까운 글자 자리(칸 밖이면 칸의 처음/끝)
       var n=kids.length, lo=0, hi=n-1;
-      if(y<=0) return 0;
+      if(y<=0) return from;
       while(lo<hi){ var mid=(lo+hi+1)>>1; if(kids[mid].offsetTop<=y) lo=mid; else hi=mid-1; }
       var k=lo, len=paras[k].length; if(!len) return starts[k];
       var a=0,b=len; while(a<b){ var c=(a+b)>>1, rc=rectAt(k,c); if(rc.top+rc.h<=y) a=c+1; else b=c; }   // 그 높이의 줄 첫 글자
-      var lineTop=rectAt(k,Math.min(a,len)).top, best=a, bd=Infinity;
+      if(a>=len) return starts[k]+len;
+      var lineTop=rectAt(k,a).top, best=a, bd=Infinity;
       for(var i=a;i<=len;i++){ var ri=rectAt(k,i); if(i<len&&ri.top>lineTop+1) break; var dd=Math.abs(ri.x-x); if(dd<bd){bd=dd;best=i;} if(i<len&&ri.x>x) break; }
       return starts[k]+best;
     },
     done:function(){ m.remove(); }
   };
 }
+// 커서 앞뒤로 따라 그릴 범위: 한 화면 분량의 넉넉한 배수. 문단 처음에서 시작할 수 있으면 거기서(줄바꿈 위치가 정확), 아주 긴 문단이면 중간에서(한 줄 안팎 오차)
+function pageSpan(pos,h,lh){
+  var v=ed.value, len=v.length, fs=parseFloat(getComputedStyle(ed).fontSize)||17;
+  var W=Math.max(4000,Math.ceil((h/lh+2)*(ed.clientWidth/(fs*0.5))*2.5));
+  var f0=Math.max(0,pos-W), t0=Math.min(len,pos+W), ps=f0?v.lastIndexOf('\n',f0-1)+1:0, pe=v.indexOf('\n',t0);
+  return {from:f0-ps<=W?ps:f0, to:pe<0?(len-t0<=W?len:t0):(pe-t0<=W?pe:t0)};
+}
+var pgAnim=null;
+function pageStop(){ if(pgAnim){ cancelAnimationFrame(pgAnim.raf); ed.parentNode.scrollTop=pgAnim.to; pgAnim=null; } }
+function pageGlide(to){
+  var sc=ed.parentNode, reduce=false;
+  try{ reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){}
+  var going=!!pgAnim;   // 이미 미끄러지는 중이면 속도를 이어 가도록 천천히 출발하지 않는다
+  if(pgAnim){ cancelAnimationFrame(pgAnim.raf); }
+  var from=sc.scrollTop;
+  if(reduce||Math.abs(to-from)<2){ sc.scrollTop=to; pgAnim=null; return; }
+  var t0=performance.now(), D=360;
+  pgAnim={to:to,raf:0};
+  var step=function(now){
+    if(!pgAnim) return;
+    var k=Math.min(1,(now-t0)/D), e=going?1-Math.pow(1-k,3):(k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2);   // 처음: 천천히 출발해 천천히 멈춤 · 이어서: 바로 이어 가다 천천히 멈춤
+    sc.scrollTop=from+(to-from)*e;   // 매 장면 위치를 직접 정해서, 커서를 보이려는 브라우저 스크롤에 끌려가지 않음
+    if(k<1) pgAnim.raf=requestAnimationFrame(step); else pgAnim=null;
+  };
+  pgAnim.raf=requestAnimationFrame(step);
+}
 function pageMove(dir){
   var sc=ed.parentNode, r=sc.getBoundingClientRect(), vv=window.visualViewport;
   var h=Math.min(r.bottom, vv?vv.offsetTop+vv.height:window.innerHeight)-r.top;
   var lh=parseFloat(getComputedStyle(ed).lineHeight)||30, step=Math.max(lh, h-lh*2);
-  var mp=pageMap();
-  try{
-    var c=mp.yOf(ed.selectionEnd), maxTop=Math.max(0,sc.scrollHeight-sc.clientHeight);
-    var newTop=Math.max(0,Math.min(maxTop,sc.scrollTop+dir*step)), moved=newTop-sc.scrollTop;
-    // 종이가 넘어간 만큼 커서도 옮긴다(끝에 가까우면 덜 넘어간 만큼만) · 더 넘길 데가 없으면 글 처음/끝으로
-    var pos=Math.abs(moved)<1 ? (dir>0?ed.value.length:0) : mp.posAt(c.top+moved+c.h/2,c.x);
-    ed.setSelectionRange(pos,pos);
-    sc.scrollTop=newTop;
-  } finally { mp.done(); }
+  var base=pgAnim?pgAnim.to:sc.scrollTop;   // 미끄러지는 중에 또 누르면 도착할 자리에서 이어서
+  var maxTop=Math.max(0,sc.scrollHeight-sc.clientHeight);
+  var newTop=Math.max(0,Math.min(maxTop,base+dir*step)), moved=newTop-base;
+  var pos;
+  if(Math.abs(moved)<1) pos=dir>0?ed.value.length:0;   // 더 넘길 데가 없으면 글 처음/끝으로
+  else {
+    var sp=pageSpan(ed.selectionEnd,h,lh), mp=pageMap(sp.from,sp.to);
+    try{ var c=mp.yOf(ed.selectionEnd); pos=mp.posAt(c.top+moved+c.h/2,c.x); }   // 종이가 넘어간 만큼 커서도
+    finally{ mp.done(); }
+  }
+  var keep=sc.scrollTop;
+  ed.setSelectionRange(pos,pos);
+  sc.scrollTop=keep;   // 커서를 옮기며 브라우저가 화면을 끌고 가지 않게
+  pageGlide(newTop);
 }
 function fitEd(){
   var sh=ed.parentNode;
@@ -4129,7 +4163,19 @@ boot();
     if(window.scrollX||window.scrollY) window.scrollTo(0,0);
     if(document.scrollingElement&&document.scrollingElement.scrollTop) document.scrollingElement.scrollTop=0;
   }
-  function soon(){ setTimeout(reset,50); setTimeout(reset,400); }
+  function soon(){ setTimeout(reset,50); setTimeout(reset,400); setTimeout(reset,1000); setTimeout(reset,2000); }   // 사파리가 커서를 되살리며 늦게 옮기는 경우까지
+  /* 화면 전체가 밀리는 순간 바로 제자리로: 아이패드 사파리는 글 칸에 커서가 있으면 커서를 보이려고 화면 전체를 옮긴다
+     (다른 앱에 갔다 오거나, 블루투스 키보드로 쓰는 중에). 플롯노트 화면 전체는 원래 움직이지 않으니, 밀리면 바로 되돌린다.
+     화면 키보드가 정말 올라와 있을 때(입력 줄을 보이게 옮긴 것)와 손가락으로 확대해 둔 때는 그대로 둔다.
+     블루투스 키보드의 작은 단축키 막대는 키보드로 치지 않는다(높이 120 미만). */
+  var pinRaf=0;
+  function pin(){
+    var vv=window.visualViewport;
+    if(kbOpen()||(vv&&vv.scale>1.01)) return;
+    if(!(window.scrollX||window.scrollY||(document.scrollingElement&&document.scrollingElement.scrollTop))) return;
+    cancelAnimationFrame(pinRaf); pinRaf=requestAnimationFrame(reset);
+  }
+  window.addEventListener('scroll',pin,{passive:true});
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') soon(); });
   window.addEventListener('pageshow',soon);
   window.addEventListener('focus',soon);
@@ -4151,7 +4197,7 @@ boot();
 /* ---------- 새 버전 알림: 깃허브에 새 버전이 올라오면 맨 위에 "새 버전이 나왔어요. [새로고침]" ----------
    열어 둔 채로 며칠씩 쓰면 예전 버전이 계속 돌아가므로, 앱으로 돌아올 때와 30분마다 sw.js의 버전을 조용히 확인한다.
    (Claude 테스트 페이지·파일 하나짜리 html에는 sw.js가 없어서 동작하지 않음) */
-var APPVER='ed661162b9', verAt=0;
+var APPVER='8b4b7955b3', verAt=0;
 function verCheck(force){
   if(APPVER.indexOf('__')===0||!navigator.onLine||!/^https?:$/.test(location.protocol)) return;
   if(!force&&Date.now()-verAt<5*60000) return; verAt=Date.now();
